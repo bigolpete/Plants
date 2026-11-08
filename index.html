@@ -1,0 +1,1099 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Lizzy's Plants</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Track garden and houseplants, watering schedules, light needs and companion plants.">
+<meta name="theme-color" content="#111713">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Plants">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Young+Serif&family=Instrument+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: a phone-first garden notebook. Sticky header, one scrolling column, bottom tab bar, bottom sheets for detail and editing. */
+:root {
+  color-scheme: dark;
+  --bg: #111713;
+  --surface: #19211C;
+  --surface-2: #212B24;
+  --ink: #E3EAE2;
+  --muted: #98A79B;
+  --line: #2C3730;
+  --leaf: #7EBC87;
+  --leaf-ink: #0F1A12;
+  --leaf-soft: #213426;
+  --water: #7DB6DE;
+  --water-soft: #1B2B37;
+  --warn: #EC8C70;
+  --warn-soft: #3A241D;
+  --sun: #E3B24B;
+  --c-veg: #E07E63;
+  --c-herb: #8DC06F;
+  --c-flower: #E3B24B;
+  --c-fruit: #E07FA4;
+  --c-house: #7DBEC4;
+  --c-other: #A9AE98;
+  --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.35);
+  --f-display: "Young Serif", Georgia, "Times New Roman", serif;
+  --f-body: "Instrument Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --tabbar-h: 62px;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; padding-top: env(safe-area-inset-top, 0px); background: var(--bg); }
+body { margin: 0; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+body {
+  background: var(--bg); color: var(--ink);
+  font-family: var(--f-body); font-size: 16px; line-height: 1.45;
+  -webkit-tap-highlight-color: transparent;
+}
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 30; background: var(--bg); }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--leaf); outline-offset: 2px; }
+.wrap { max-width: 640px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+
+/* Header */
+.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; background: var(--bg); border-bottom: 1px solid transparent; }
+.top.scrolled { border-bottom-color: var(--line); }
+.top .wrap { padding-block: 14px 10px; display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; }
+h1 { font-family: var(--f-display); font-weight: 400; font-size: 1.7rem; line-height: 1.1; margin: 0; letter-spacing: -0.01em; }
+.summary { margin: 4px 0 0; color: var(--muted); font-size: .9rem; }
+.summary b { color: var(--water); font-weight: 600; }
+.sync { font-size: .72rem; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; white-space: nowrap; padding-bottom: 4px; }
+
+main { padding-block: 8px calc(var(--tabbar-h) + 96px + env(safe-area-inset-bottom, 0px)); display: grid; gap: 18px; }
+h2 { font-family: var(--f-display); font-weight: 400; font-size: 1.2rem; margin: 0; text-wrap: balance; }
+.eyebrow { font-size: .72rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 600; margin: 0 0 8px; }
+.section { display: grid; gap: 10px; }
+.muted { color: var(--muted); }
+.small { font-size: .85rem; }
+
+/* Filter chips */
+.chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; margin: 0 -16px; padding-left: 16px; padding-right: 16px; }
+.chips::-webkit-scrollbar { display: none; }
+.chip { flex: none; border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 7px 14px; font-size: .9rem; font-weight: 500; white-space: nowrap; }
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.chip .n { opacity: .6; margin-left: 4px; font-variant-numeric: tabular-nums; }
+
+/* Plant list */
+.group { display: grid; gap: 6px; }
+.group-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding: 0 2px; }
+.list { background: var(--surface); border-radius: 16px; box-shadow: var(--shadow); overflow: hidden; }
+.row { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 14px; background: none; border: 0; text-align: left; border-top: 1px solid var(--line); }
+.row:first-child { border-top: 0; }
+.row:active { background: var(--surface-2); }
+.row-main { flex: 1; min-width: 0; }
+.row-title, .row-sub { display: block; }
+.row-title { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.row-sub { font-size: .85rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mono { flex: none; width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; font-family: var(--f-display); font-size: 1.05rem; color: var(--c); background: color-mix(in srgb, var(--c) 16%, transparent); }
+.mono.lg { width: 56px; height: 56px; border-radius: 16px; font-size: 1.4rem; }
+.mono.sm { width: 32px; height: 32px; border-radius: 9px; font-size: .85rem; }
+
+.pill { flex: none; display: inline-flex; align-items: center; gap: 4px; border-radius: 999px; padding: 4px 9px; font-size: .78rem; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; background: var(--surface-2); color: var(--muted); }
+.pill.due { background: var(--water-soft); color: var(--water); }
+.pill.late { background: var(--warn-soft); color: var(--warn); }
+.pill.good { background: var(--leaf-soft); color: var(--leaf); }
+.pill svg { width: 12px; height: 12px; }
+
+/* Cards */
+.card { background: var(--surface); border-radius: 16px; box-shadow: var(--shadow); padding: 16px; display: grid; gap: 10px; }
+.card.warn { box-shadow: none; background: var(--warn-soft); }
+.card.warn h3 { color: var(--warn); }
+h3 { font-size: 1rem; margin: 0; font-weight: 600; }
+.card p { margin: 0; }
+
+/* Buttons */
+.btn { border: 0; border-radius: 12px; padding: 11px 16px; font-weight: 600; background: var(--surface-2); display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; }
+.btn.primary { background: var(--leaf); color: var(--leaf-ink); }
+.btn.water { background: var(--water); color: var(--surface); }
+.btn.danger { background: var(--warn-soft); color: var(--warn); }
+.btn.ghost { background: transparent; color: var(--leaf); padding-inline: 8px; }
+.btn.block { width: 100%; }
+.btn svg { width: 18px; height: 18px; }
+.btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.btn-row > .btn { flex: 1 1 0; }
+.mini { border: 0; border-radius: 10px; padding: 8px 12px; font-weight: 600; font-size: .85rem; background: var(--water-soft); color: var(--water); display: inline-flex; gap: 5px; align-items: center; flex: none; min-height: 36px; }
+.mini svg { width: 14px; height: 14px; }
+.mini.done { background: var(--leaf-soft); color: var(--leaf); }
+
+.fab { position: fixed; z-index: 21; right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(var(--tabbar-h) + 14px + env(safe-area-inset-bottom, 0px)); border: 0; border-radius: 999px; background: var(--leaf); color: var(--leaf-ink); font-weight: 700; padding: 14px 20px; box-shadow: var(--shadow); display: inline-flex; align-items: center; gap: 6px; }
+.fab svg { width: 18px; height: 18px; }
+
+/* Tab bar */
+.tabs { position: fixed; z-index: 22; left: 0; right: 0; bottom: 0; background: var(--surface); border-top: 1px solid var(--line); padding: 0 env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px); }
+.tabs .inner { max-width: 640px; margin: 0 auto; display: grid; grid-template-columns: repeat(3, 1fr); height: var(--tabbar-h); }
+.tab { border: 0; background: none; display: grid; place-items: center; align-content: center; gap: 2px; font-size: .72rem; font-weight: 600; color: var(--muted); position: relative; }
+.tab svg { width: 24px; height: 24px; }
+.tab[aria-selected="true"] { color: var(--leaf); }
+.tab .badge { position: absolute; top: 6px; left: calc(50% + 6px); background: var(--water); color: var(--surface); border-radius: 999px; font-size: .65rem; min-width: 18px; height: 18px; display: grid; place-items: center; padding: 0 5px; font-variant-numeric: tabular-nums; }
+
+/* Empty state */
+.empty { text-align: left; padding: 22px 18px; display: grid; gap: 12px; background: var(--surface); border-radius: 18px; box-shadow: var(--shadow); }
+.empty h2 { font-size: 1.4rem; }
+.empty p { margin: 0; color: var(--muted); }
+.quick { display: flex; flex-wrap: wrap; gap: 8px; }
+.quick button { border: 1px dashed var(--line); background: var(--bg); border-radius: 999px; padding: 8px 12px; font-weight: 500; font-size: .9rem; }
+
+/* Sheet */
+#sheetRoot { position: fixed; inset: 0; z-index: 40; }
+.scrim { position: absolute; inset: 0; background: rgba(10,16,12,.45); animation: fade .18s ease-out; }
+.sheet { position: absolute; left: 0; right: 0; bottom: 0; max-height: calc(100% - env(safe-area-inset-top, 0px) - 24px); background: var(--bg); border-radius: 22px 22px 0 0; display: flex; flex-direction: column; animation: rise .24s cubic-bezier(.2,.8,.2,1); max-width: 680px; margin: 0 auto; }
+.sheet-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px max(12px, env(safe-area-inset-right, 0px)) 4px max(16px, env(safe-area-inset-left, 0px)); }
+.grab { width: 40px; height: 5px; border-radius: 3px; background: var(--line); margin: 8px auto 0; }
+.sheet-body { overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 4px max(16px, env(safe-area-inset-right, 0px)) calc(24px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); display: grid; gap: 16px; }
+.close { border: 0; background: var(--surface-2); width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; flex: none; }
+.close svg { width: 18px; height: 18px; }
+@keyframes rise { from { transform: translateY(40px); opacity: .4; } to { transform: none; opacity: 1; } }
+@keyframes fade { from { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .sheet, .scrim, #toast { animation: none !important; } }
+
+.hero { display: flex; gap: 14px; align-items: center; }
+.hero h2 { font-size: 1.5rem; line-height: 1.15; }
+.hero-text { min-width: 0; }
+
+/* Care stats */
+.care { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.stat { background: var(--surface); border-radius: 14px; padding: 12px; display: grid; gap: 6px; box-shadow: var(--shadow); min-width: 0; }
+.stat .label { font-size: .72rem; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); font-weight: 600; }
+.stat .val { font-weight: 600; font-size: 1.02rem; }
+.stat .hint { font-size: .8rem; color: var(--muted); }
+.meter { display: flex; gap: 3px; }
+.meter i { flex: 1; height: 6px; border-radius: 3px; background: var(--surface-2); }
+.meter.sun i.on { background: var(--sun); }
+.meter.drop i.on { background: var(--water); }
+.note { background: var(--surface); border-radius: 14px; padding: 12px 14px; font-size: .92rem; box-shadow: var(--shadow); }
+.note b { display: block; font-size: .72rem; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); margin-bottom: 4px; }
+
+/* Companion list */
+.rel { display: grid; gap: 0; background: var(--surface); border-radius: 16px; box-shadow: var(--shadow); overflow: hidden; }
+.rel-item { display: flex; gap: 12px; padding: 12px 14px; border-top: 1px solid var(--line); align-items: flex-start; width: 100%; background: none; border-left: 0; border-right: 0; border-bottom: 0; text-align: left; }
+.rel-item:first-child { border-top: 0; }
+.rel-item .row-main { display: grid; gap: 2px; }
+.rel-name { font-weight: 600; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.rel-why { font-size: .88rem; color: var(--muted); }
+.rel.bad .rel-name { color: var(--warn); }
+.tag { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; padding: 2px 7px; border-radius: 6px; background: var(--leaf-soft); color: var(--leaf); }
+.tag.warn { background: var(--warn-soft); color: var(--warn); }
+
+/* Form */
+.field { display: grid; gap: 6px; }
+.field > label, .field > .label { font-size: .8rem; font-weight: 600; color: var(--muted); }
+.input { width: 100%; border: 1px solid var(--line); background: var(--surface); border-radius: 12px; padding: 12px 14px; font-size: 16px; min-height: 46px; }
+textarea.input { min-height: 80px; resize: vertical; }
+.seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; background: var(--surface-2); border-radius: 12px; padding: 3px; gap: 3px; }
+.seg button { border: 0; background: none; border-radius: 9px; padding: 9px 6px; font-weight: 600; font-size: .9rem; color: var(--muted); }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,.4); }
+.stepper { display: flex; align-items: center; gap: 10px; }
+.stepper button { width: 44px; height: 44px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); font-size: 1.3rem; font-weight: 600; flex: none; }
+.stepper output { flex: 1; text-align: center; font-weight: 600; font-variant-numeric: tabular-nums; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.two > * { min-width: 0; }
+.picker { display: grid; gap: 6px; max-height: 260px; overflow-y: auto; background: var(--surface); border-radius: 12px; border: 1px solid var(--line); }
+.pick { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border: 0; background: none; text-align: left; border-top: 1px solid var(--line); width: 100%; }
+.pick:first-child { border-top: 0; }
+.chosen { display: flex; align-items: center; gap: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
+.chosen .row-main { min-width: 0; }
+.spots { display: flex; flex-wrap: wrap; gap: 6px; }
+.spots button { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 8px 13px; font-size: .9rem; font-weight: 500; }
+.spots button[aria-pressed="true"] { background: var(--leaf); border-color: var(--leaf); color: var(--leaf-ink); }
+
+/* Lookup grid */
+.search { position: relative; }
+.search svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 18px; height: 18px; color: var(--muted); pointer-events: none; }
+.search .input { padding-left: 38px; }
+.grid-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.grid-chips button { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 12px; font-size: .88rem; font-weight: 500; }
+.grid-chips button.owned { border-color: var(--leaf); color: var(--leaf); }
+.pair { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-weight: 600; }
+.pair .amp { color: var(--muted); font-weight: 400; }
+
+.banner { background: var(--surface-2); border-radius: 12px; padding: 10px 12px; font-size: .85rem; color: var(--muted); }
+
+#toast { position: fixed; z-index: 50; left: 50%; transform: translateX(-50%); bottom: calc(var(--tabbar-h) + 80px + env(safe-area-inset-bottom, 0px)); background: var(--ink); color: var(--bg); border-radius: 14px; padding: 10px 10px 10px 16px; display: flex; align-items: center; gap: 12px; font-weight: 500; font-size: .92rem; box-shadow: var(--shadow); animation: rise .2s ease-out; max-width: calc(100% - 32px); }
+#toast button { border: 0; background: transparent; color: var(--bg); font-weight: 700; text-decoration: underline; padding: 6px 8px; }
+#toast:not(:has(button)) { padding-right: 16px; }
+
+@media (min-width: 560px) {
+  .care { grid-template-columns: repeat(4, 1fr); }
+}
+</style>
+</head>
+<body>
+
+<header class="top" id="top">
+  <div class="wrap">
+    <div>
+      <h1>Lizzy's Plants</h1>
+      <p class="summary" id="summary">Loading your garden…</p>
+    </div>
+    <span class="sync" id="sync"></span>
+  </div>
+</header>
+
+<main id="main" class="wrap" aria-live="polite"></main>
+
+<button class="fab" id="fab" type="button" aria-label="Add a plant">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+  Add plant
+</button>
+
+<nav class="tabs" aria-label="Sections">
+  <div class="inner" role="tablist">
+    <button class="tab" role="tab" data-tab="plants" aria-selected="true" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21v-8"/><path d="M12 13c0-4 3-7 8-7 0 4-3 7-8 7z"/><path d="M12 15c0-3.3-2.5-6-7-6 0 3.3 2.5 6 7 6z"/><path d="M7 21h10"/></svg>
+      My plants
+    </button>
+    <button class="tab" role="tab" data-tab="water" aria-selected="false" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/></svg>
+      Watering
+      <span class="badge" id="waterBadge" hidden></span>
+    </button>
+    <button class="tab" role="tab" data-tab="companions" aria-selected="false" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="9" r="4"/><circle cx="16" cy="15" r="4"/><path d="M10.8 11.8l2.4 0.4"/></svg>
+      Companions
+    </button>
+  </div>
+</nav>
+
+<div id="sheetRoot" hidden>
+  <div class="scrim" id="scrim"></div>
+  <section class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+    <div class="grab"></div>
+    <div class="sheet-head">
+      <span class="eyebrow" id="sheetTitle" style="margin:0"></span>
+      <button class="close" id="sheetClose" type="button" aria-label="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="sheet-body" id="sheetBody"></div>
+  </section>
+</div>
+
+<div id="toast" role="status" hidden></div>
+
+<script>
+/* ---------------------------------------------------------------
+   Plant reference data
+   [id, name, category, light, water every N days, care note]
+---------------------------------------------------------------- */
+const LIGHT = {
+  full:   { label: 'Full sun',        hint: '6–8+ hours of direct sun',               lvl: 5 },
+  part:   { label: 'Part sun',        hint: '3–6 hours of sun, ideally morning',      lvl: 3 },
+  shade:  { label: 'Shade',           hint: 'Under 3 hours of direct sun',            lvl: 1 },
+  direct: { label: 'Bright + direct', hint: 'A sunny south or west window',           lvl: 4 },
+  bright: { label: 'Bright indirect', hint: 'Near a window, out of harsh midday sun', lvl: 3 },
+  medium: { label: 'Medium light',    hint: 'A few feet back from a window',          lvl: 2 },
+  low:    { label: 'Low light OK',    hint: 'Copes with dim rooms; grows faster with more', lvl: 1 },
+};
+const SPOT_PRESETS = {
+  garden: ['Garden bed 1', 'Garden bed 2'],
+  indoor: ['Living room', 'Office', 'Sunroom', 'Kitchen'],
+};
+const CATS = { veg: 'Vegetable', herb: 'Herb', flower: 'Flower', fruit: 'Fruit', house: 'Houseplant', other: 'Plant' };
+
+const PLANT_ROWS = [
+  // Vegetables
+  ['tomato','Tomato','veg','full',3,'Deep soak at the base, about 1–2 in. of water a week. Even moisture prevents blossom-end rot and split fruit.'],
+  ['pepper','Pepper','veg','full',3,'Water when the top inch of soil is dry. Keep moisture steady while it flowers and sets fruit.'],
+  ['eggplant','Eggplant','veg','full',3,'Likes heat and steady moisture. Mulch to keep roots evenly damp.'],
+  ['lettuce','Lettuce','veg','part',2,'Shallow roots dry out fast. Keep soil evenly moist; afternoon shade slows bolting in heat.'],
+  ['spinach','Spinach','veg','part',2,'Cool-season crop. Keep soil moist and expect it to bolt once days get long and hot.'],
+  ['kale','Kale','veg','part',3,'About 1–1.5 in. of water a week. Flavor sweetens after a light frost.'],
+  ['cabbage','Cabbage','veg','full',3,'Consistent water stops heads from splitting. Water at the base.'],
+  ['broccoli','Broccoli','veg','full',3,'About 1–1.5 in. a week. Harvest the main head while buds are tight.'],
+  ['carrot','Carrot','veg','full',3,'Keep the seedbed moist until sprouts appear, then water deeply so roots grow long.'],
+  ['radish','Radish','veg','full',2,'Fast and thirsty. Uneven watering makes radishes woody or split.'],
+  ['beet','Beet','veg','full',3,'Even moisture keeps roots tender. Thin seedlings to 3–4 in. apart.'],
+  ['onion','Onion','veg','full',4,'About 1 in. a week. Stop watering once the tops start to flop over.'],
+  ['garlic','Garlic','veg','full',5,'Water through spring, then stop about two weeks before harvest so bulbs cure.'],
+  ['potato','Potato','veg','full',4,'Keep moist once tubers form (around flowering). Hill soil over stems.'],
+  ['bean','Beans','veg','full',3,'Water at soil level in the morning; wet leaves spread disease.'],
+  ['pea','Peas','veg','full',3,'Cool-season. Most thirsty when flowering and filling pods.'],
+  ['corn','Sweet corn','veg','full',3,'Thirstiest at tasseling and silking. Plant in blocks, not single rows, for pollination.'],
+  ['squash','Squash & zucchini','veg','full',3,'Water deeply at the base. The leaves are prone to powdery mildew, so keep them dry.'],
+  ['cucumber','Cucumber','veg','full',2,'Consistent moisture prevents bitter fruit. Trellis to save space and keep fruit clean.'],
+  ['asparagus','Asparagus','veg','full',5,'Perennial. Water deeply in the first two years while the crowns establish.'],
+  // Fruit
+  ['strawberry','Strawberry','fruit','full',2,'Shallow roots: about 1 in. a week, more while fruiting. Mulch with straw.'],
+  // Herbs
+  ['basil','Basil','herb','full',2,'Water at the base when the top inch is dry. Pinch off flowers to keep leaves coming.'],
+  ['parsley','Parsley','herb','part',3,'Keep soil lightly moist. A host plant for swallowtail caterpillars.'],
+  ['cilantro','Cilantro','herb','part',3,'Bolts quickly in heat. Give afternoon shade and sow again every few weeks.'],
+  ['dill','Dill','herb','full',4,'Fairly drought tolerant once up. Let some flower to feed beneficial insects.'],
+  ['fennel','Fennel','herb','full',4,'Grow it on its own, away from the vegetable bed. Its flowers draw beneficial insects.'],
+  ['mint','Mint','herb','part',2,'Spreads aggressively by runners. Grow it in a pot, even in the garden.'],
+  ['rosemary','Rosemary','herb','full',7,'Drought tolerant. Let soil dry between waterings; soggy roots kill it.'],
+  ['thyme','Thyme','herb','full',7,'Likes lean, well-drained soil. Water only when dry.'],
+  ['sage','Sage','herb','full',6,'Drought tolerant once established. Overwatering causes root rot.'],
+  ['oregano','Oregano','herb','full',6,'Tough and spreading. Water when the soil is dry an inch down.'],
+  ['chives','Chives','herb','full',3,'Keep moderately moist. The purple flowers are edible and loved by bees.'],
+  ['chamomile','Chamomile','herb','full',4,'Light watering; it tolerates dry spells. Self-seeds readily.'],
+  ['lavender','Lavender','herb','full',10,'Hates wet feet. Water deeply but rarely once established.'],
+  // Flowers
+  ['marigold','Marigold','flower','full',4,'Water at the base when dry. Deadhead for flowers all season.'],
+  ['nasturtium','Nasturtium','flower','full',5,'Thrives on neglect: lean soil and light watering give more flowers.'],
+  ['borage','Borage','flower','full',5,'Easy annual that self-seeds. Star-shaped blue flowers are edible.'],
+  ['calendula','Calendula','flower','full',4,'Blooms best in cool weather. Deadhead to keep it flowering.'],
+  ['sunflower','Sunflower','flower','full',5,'Deep roots: water deeply and less often. Stake tall varieties.'],
+  ['rose','Rose','flower','full',4,'Deep water at the base 1–2 times a week. Keep leaves dry to avoid black spot.'],
+  // Houseplants
+  ['pothos','Pothos','house','medium',8,'Water when the top 2 in. are dry. Drooping leaves mean it is thirsty.'],
+  ['snake','Snake plant','house','low',18,'Let the soil dry out completely. Overwatering is the main thing that kills it.'],
+  ['zz','ZZ plant','house','low',18,'Stores water in its rhizomes. Water only when the pot is fully dry.'],
+  ['monstera','Monstera','house','bright',8,'Water when the top 2 in. are dry. Give it a moss pole to climb.'],
+  ['philodendron','Philodendron','house','medium',8,'Water when the top inch is dry. Yellow leaves usually mean too much water.'],
+  ['peacelily','Peace lily','house','medium',6,'Droops dramatically when thirsty and perks up within hours of a drink.'],
+  ['spider','Spider plant','house','bright',7,'Keep lightly moist. Brown tips often come from tap-water minerals.'],
+  ['fiddle','Fiddle leaf fig','house','bright',9,'Water when the top 2 in. are dry. Dislikes being moved and cold drafts.'],
+  ['rubber','Rubber plant','house','bright',10,'Let the top half of the soil dry. Wipe the leaves so they can take in light.'],
+  ['aloe','Aloe vera','house','direct',18,'Water deeply, then let it dry out completely. Less in winter.'],
+  ['jade','Jade plant','house','direct',14,'Succulent: soak and dry. Wrinkled leaves mean it needs water.'],
+  ['succulent','Succulents','house','direct',14,'Soak, then let the soil dry completely. Gritty, fast-draining mix.'],
+  ['orchid','Orchid (moth)','house','bright',7,'Soak the roots, then drain fully. Silvery roots mean thirsty, green means fine.'],
+  ['fern','Boston fern','house','medium',3,'Keep soil lightly moist and the air humid. A bathroom suits it.'],
+  ['calathea','Calathea','house','medium',5,'Filtered or rain water and high humidity. Crispy edges mean the air is too dry.'],
+];
+
+const DB = {};
+PLANT_ROWS.forEach(([id, name, cat, light, water, note]) => { DB[id] = { id, name, cat, light, water, note }; });
+
+/* Companion relationships. Each reason is written so it reads from either side.
+   "brassica" expands to cabbage, broccoli and kale. */
+const GOOD = [
+  ['tomato','basil','Basil helps repel thrips, whiteflies and tomato hornworms.'],
+  ['tomato','marigold','Marigold roots deter root-knot nematodes and the flowers distract whiteflies.'],
+  ['tomato','carrot','Carrots loosen the soil and root at a different depth than tomatoes.'],
+  ['tomato','onion','Onion scent helps mask tomatoes from aphids.'],
+  ['tomato','garlic','Garlic helps deter aphids and spider mites.'],
+  ['tomato','chives','Chives help deter aphids.'],
+  ['tomato','borage','Borage deters tomato hornworms and brings in pollinators.'],
+  ['tomato','nasturtium','Nasturtium is a trap crop that pulls aphids and whiteflies away.'],
+  ['tomato','parsley','Parsley flowers attract hoverflies, whose larvae eat aphids.'],
+  ['tomato','lettuce','Lettuce grows in the tomatoes’ shade as a living mulch.'],
+  ['tomato','asparagus','Tomatoes repel asparagus beetles, and asparagus helps deter nematodes.'],
+  ['tomato','calendula','Calendula attracts ladybugs and hoverflies that eat pests.'],
+  ['tomato','mint','Mint helps deter aphids and ants. Keep it in a pot.'],
+  ['tomato','cilantro','Cilantro flowers attract hoverflies and parasitic wasps.'],
+  ['basil','pepper','Basil helps deter aphids, spider mites and thrips.'],
+  ['basil','asparagus','Basil helps deter asparagus beetles.'],
+  ['basil','oregano','Both like sun and similar watering, and together they draw pollinators.'],
+  ['pepper','onion','Onions help deter aphids and slugs.'],
+  ['pepper','carrot','Carrots fill the space between peppers without competing.'],
+  ['pepper','marigold','Marigold deters nematodes and attracts beneficial insects.'],
+  ['pepper','spinach','Spinach shades the soil and crowds out weeds under peppers.'],
+  ['pepper','oregano','Oregano covers the ground and helps deter pests.'],
+  ['pepper','garlic','Garlic helps deter aphids.'],
+  ['lettuce','carrot','Carrots and lettuce use different soil depths.'],
+  ['lettuce','radish','Radishes sprout fast and mark the row; both like cool weather.'],
+  ['lettuce','chives','Chives help deter aphids from lettuce.'],
+  ['lettuce','garlic','Garlic helps deter aphids.'],
+  ['lettuce','onion','Onions help deter aphids.'],
+  ['lettuce','strawberry','Lettuce makes a tidy border between strawberry plants.'],
+  ['lettuce','cucumber','Cucumber vines shade lettuce through summer heat.'],
+  ['lettuce','dill','Dill attracts beneficial insects that protect lettuce.'],
+  ['lettuce','pea','Peas shade lettuce and both like cool weather.'],
+  ['lettuce','beet','Lettuce and beets share space without competing.'],
+  ['carrot','onion','Onion scent confuses carrot rust flies, and carrots confuse onion flies.'],
+  ['carrot','chives','Chives help deter carrot rust flies.'],
+  ['carrot','rosemary','Rosemary’s scent masks carrots from carrot rust flies.'],
+  ['carrot','sage','Sage helps deter carrot rust flies.'],
+  ['carrot','radish','Fast radishes loosen the soil for slow carrot seedlings.'],
+  ['carrot','pea','Peas add nitrogen to the soil that carrots can use.'],
+  ['carrot','bean','Beans add nitrogen to the soil that carrots can use.'],
+  ['onion','beet','Onions help deter pests, and both grow well in tight rows.'],
+  ['onion','brassica','Onion scent helps deter cabbage worms and loopers.'],
+  ['onion','strawberry','Onions help deter pests around strawberries.'],
+  ['onion','chamomile','Chamomile is said to improve onion growth and flavor.'],
+  ['garlic','rose','Garlic helps deter aphids and black spot on roses.'],
+  ['garlic','brassica','Garlic helps deter cabbage moths and aphids.'],
+  ['garlic','strawberry','Garlic helps deter pests and fungal problems.'],
+  ['garlic','beet','Garlic helps deter pests and is said to improve beet growth.'],
+  ['bean','corn','Corn gives pole beans a trellis, and beans feed the corn nitrogen. Two of the Three Sisters.'],
+  ['bean','squash','Squash leaves shade the soil and smother weeds. Two of the Three Sisters.'],
+  ['bean','cucumber','Beans add nitrogen that hungry cucumbers use.'],
+  ['bean','marigold','Marigold helps deter Mexican bean beetles.'],
+  ['bean','nasturtium','Nasturtium draws aphids away from beans.'],
+  ['bean','rosemary','Rosemary helps deter Mexican bean beetles.'],
+  ['bean','potato','Beans deter Colorado potato beetles, and potatoes deter Mexican bean beetles.'],
+  ['bean','eggplant','Beans help deter Colorado potato beetles, which also attack eggplant.'],
+  ['bean','spinach','Bean foliage shades spinach so it keeps going into summer.'],
+  ['pea','radish','Radishes loosen the soil and help deter some pests.'],
+  ['pea','cucumber','Peas add nitrogen that cucumbers use.'],
+  ['pea','corn','Corn stalks support peas, and peas add nitrogen.'],
+  ['pea','mint','Mint helps deter aphids. Keep it in a pot.'],
+  ['pea','spinach','Peas shade spinach and add nitrogen.'],
+  ['corn','squash','Squash shades the soil, holds moisture, and its prickly vines discourage raccoons. Two of the Three Sisters.'],
+  ['corn','cucumber','Corn gives cucumbers shade and shelter from wind.'],
+  ['corn','sunflower','Both draw pollinators, and sunflowers act as a windbreak.'],
+  ['squash','nasturtium','Nasturtium helps deter squash bugs and cucumber beetles.'],
+  ['squash','radish','Radishes help deter squash bugs and cucumber beetles.'],
+  ['squash','marigold','Marigold helps deter squash bugs and nematodes.'],
+  ['squash','borage','Borage brings in bees for better squash pollination.'],
+  ['cucumber','radish','Radishes help deter cucumber beetles.'],
+  ['cucumber','dill','Dill attracts ladybugs and wasps that prey on cucumber pests.'],
+  ['cucumber','nasturtium','Nasturtium helps repel cucumber beetles and aphids.'],
+  ['cucumber','marigold','Marigold helps deter beetles.'],
+  ['cucumber','sunflower','Sturdy sunflowers can act as a living trellis for cucumbers.'],
+  ['cucumber','borage','Borage brings in pollinators for more cucumbers.'],
+  ['potato','marigold','Marigold helps deter nematodes and beetles.'],
+  ['potato','brassica','Both are happy in the same bed and do not share major pests.'],
+  ['brassica','dill','Dill attracts parasitic wasps that kill cabbage worms.'],
+  ['brassica','rosemary','Rosemary’s scent helps deter cabbage moths.'],
+  ['brassica','thyme','Thyme helps deter cabbage worms and cabbage moths.'],
+  ['brassica','sage','Sage helps deter cabbage moths.'],
+  ['brassica','mint','Mint helps deter cabbage moths and flea beetles. Keep it in a pot.'],
+  ['brassica','nasturtium','Nasturtium is a trap crop for aphids and flea beetles.'],
+  ['brassica','chamomile','Chamomile attracts hoverflies and wasps that hunt pests.'],
+  ['brassica','beet','Beets fill gaps and use different nutrients.'],
+  ['brassica','oregano','Oregano helps deter cabbage butterflies.'],
+  ['brassica','calendula','Calendula draws aphids and attracts predators.'],
+  ['spinach','strawberry','Spinach shades the soil around strawberries.'],
+  ['spinach','radish','Radishes lure leaf miners away from spinach.'],
+  ['spinach','cilantro','Cilantro attracts beneficial insects.'],
+  ['strawberry','borage','Borage brings in pollinators and is said to increase strawberry yields.'],
+  ['strawberry','thyme','Thyme makes a ground cover that helps deter worms.'],
+  ['strawberry','chives','Chives help deter aphids.'],
+  ['rose','chives','Chives help deter aphids and black spot.'],
+  ['rose','lavender','Lavender attracts pollinators and helps deter aphids.'],
+  ['rose','marigold','Marigold helps deter nematodes.'],
+  ['lavender','rosemary','Both want sun and dry soil, so they are easy to care for together.'],
+  ['lavender','thyme','Both want sun and dry soil, so they are easy to care for together.'],
+  ['sage','rosemary','Both are Mediterranean herbs with the same sun and water needs.'],
+  ['eggplant','marigold','Marigold helps deter nematodes.'],
+  ['eggplant','thyme','Thyme helps deter garden moths.'],
+  ['asparagus','parsley','Parsley is said to boost asparagus vigor.'],
+  ['asparagus','calendula','Calendula helps deter asparagus beetles.'],
+  ['sunflower','squash','Sunflowers pull in pollinators for squash.'],
+];
+const BAD = [
+  ['tomato','fennel','Fennel releases compounds that stunt most garden plants.'],
+  ['tomato','brassica','Brassicas and tomatoes compete hard and stunt each other.'],
+  ['tomato','potato','Both are nightshades and spread early and late blight to each other.'],
+  ['tomato','corn','Corn earworm and tomato fruitworm are the same pest, so they feed it twice.'],
+  ['tomato','dill','Mature dill can stunt tomatoes. Young dill is fine.'],
+  ['pepper','fennel','Fennel stunts peppers.'],
+  ['pepper','brassica','Brassicas compete with peppers for nutrients.'],
+  ['eggplant','fennel','Fennel stunts eggplant.'],
+  ['bean','fennel','Fennel stunts beans.'],
+  ['basil','sage','Sage wants dry soil and basil wants steady moisture.'],
+  ['carrot','dill','Dill cross-pollinates with carrots and attracts the same pests.'],
+  ['carrot','fennel','Fennel cross-pollinates with carrots and stunts them.'],
+  ['onion','bean','Onions stunt the growth of beans.'],
+  ['onion','pea','Onions stunt the growth of peas.'],
+  ['garlic','bean','Garlic stunts the growth of beans.'],
+  ['garlic','pea','Garlic stunts the growth of peas.'],
+  ['chives','bean','Chives stunt the growth of beans.'],
+  ['chives','pea','Chives stunt the growth of peas.'],
+  ['onion','asparagus','Onions inhibit asparagus growth.'],
+  ['garlic','asparagus','Garlic inhibits asparagus growth.'],
+  ['squash','potato','Both are heavy feeders, and potatoes can spread blight to squash.'],
+  ['cucumber','potato','Cucumbers raise the risk of potato blight.'],
+  ['cucumber','sage','Sage can stunt cucumbers.'],
+  ['potato','sunflower','Sunflowers release compounds that stunt potatoes.'],
+  ['brassica','strawberry','Strawberries and brassicas stunt each other.'],
+  ['beet','bean','Pole beans and beets stunt each other.'],
+  ['dill','fennel','They cross-pollinate, giving poor seed and odd-tasting plants.'],
+  ['cilantro','fennel','Fennel inhibits cilantro.'],
+];
+
+const REL = {};
+Object.keys(DB).forEach(id => REL[id] = { good: new Map(), bad: new Map() });
+const expand = id => id === 'brassica' ? ['cabbage', 'broccoli', 'kale'] : [id];
+function link(list, kind) {
+  list.forEach(([a, b, why]) => {
+    expand(a).forEach(x => expand(b).forEach(y => {
+      if (!DB[x] || !DB[y]) { console.warn('Unknown plant in relation', x, y); return; }
+      if (!REL[x][kind].has(y)) REL[x][kind].set(y, why);
+      if (!REL[y][kind].has(x)) REL[y][kind].set(x, why);
+    }));
+  });
+}
+link(GOOD, 'good');
+link(BAD, 'bad');
+
+/* ---------------------------------------------------------------
+   Helpers
+---------------------------------------------------------------- */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const pad = n => String(n).padStart(2, '0');
+const todayISO = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
+const parseISO = s => { const [y, m, d] = String(s).split('-').map(Number); return new Date(y, (m || 1) - 1, d || 1); };
+const daysBetween = (a, b) => Math.round((parseISO(b) - parseISO(a)) / 86400000);
+const fmtDate = s => parseISO(s).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+const newId = () => 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
+
+const typeOf = p => DB[p.type] || null;
+const catOf = p => typeOf(p)?.cat || 'other';
+const lightOf = p => LIGHT[p.light || typeOf(p)?.light] || null;
+const displayName = p => p.name?.trim() || typeOf(p)?.name || 'Plant';
+const typeName = p => typeOf(p)?.name || p.customType || 'Custom plant';
+const spotKey = p => (p.spot || '').trim().toLowerCase() || (p.setting === 'indoor' ? 'indoors' : 'garden');
+const spotLabel = p => (p.spot || '').trim() || (p.setting === 'indoor' ? 'Indoors' : 'Garden');
+
+function initials(name) {
+  const w = String(name).replace(/[^\p{L}\s]/gu, '').trim().split(/\s+/).filter(Boolean);
+  if (!w.length) return '•';
+  return (w.length === 1 ? w[0].slice(0, 2) : w[0][0] + w[1][0]).replace(/^./, c => c.toUpperCase());
+}
+function mono(name, cat, size = '') {
+  return `<span class="mono ${size}" style="--c: var(--c-${cat})" aria-hidden="true">${esc(initials(name))}</span>`;
+}
+function meter(lvl, kind) {
+  return `<div class="meter ${kind}" aria-hidden="true">${[1,2,3,4,5].map(i => `<i class="${i <= lvl ? 'on' : ''}"></i>`).join('')}</div>`;
+}
+const ICON = {
+  drop: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.5s6.5 7 6.5 11.8a6.5 6.5 0 0 1-13 0C5.5 9.5 12 2.5 12 2.5z"/></svg>',
+  check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+  search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg>',
+  edit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16v4z"/></svg>',
+};
+
+/* Watering status */
+function waterInfo(p) {
+  const every = Math.max(1, Number(p.waterEvery) || typeOf(p)?.water || 7);
+  if (!p.lastWatered) return { every, left: 0, label: 'Water today', cls: 'due', never: true };
+  const left = every - daysBetween(p.lastWatered, todayISO());
+  if (left < 0) return { every, left, label: `${-left}d overdue`, cls: 'late' };
+  if (left === 0) return { every, left, label: 'Water today', cls: 'due' };
+  if (left === 1) return { every, left, label: 'Tomorrow', cls: '' };
+  return { every, left, label: `In ${left} days`, cls: '' };
+}
+const isDue = p => waterInfo(p).left <= 0;
+
+/* ---------------------------------------------------------------
+   Storage: shared artifact database when available, this device otherwise
+---------------------------------------------------------------- */
+const LOCAL_KEY = 'lizzys-plants-v1';
+const Store = {
+  mode: 'loading', col: null, plants: [], loaded: false, slow: false, readOnly: false,
+  async init() {
+    let db = null;
+    const embedded = window.self !== window.top;
+    for (let i = 0; i < 15 && embedded && !window.claude?.use; i++) await new Promise(r => setTimeout(r, 100));
+    try { if (window.claude?.use) db = await window.claude.use('db'); } catch (e) { db = null; }
+    if (db) {
+      this.mode = 'cloud';
+      this.col = db.collection('plants');
+      const timer = setTimeout(() => { if (!this.confirmed) { this.slow = true; render(); } }, 10000);
+      this.col.onSnapshot(snap => {
+        this.plants = snap.docs.map(d => ({ ...d.data(), id: d.id }));
+        this.loaded = true;
+        if (!snap.metadata.fromCache) { this.confirmed = true; this.slow = false; clearTimeout(timer); }
+        render();
+      }, err => {
+        clearTimeout(timer);
+        this.loaded = true; this.error = err.code;
+        render();
+      });
+    } else {
+      this.mode = 'local';
+      try { this.plants = JSON.parse(localStorage.getItem(LOCAL_KEY) || '[]'); } catch (e) { this.plants = []; }
+      this.loaded = true;
+      render();
+    }
+  },
+  persistLocal() { try { localStorage.setItem(LOCAL_KEY, JSON.stringify(this.plants)); } catch (e) {} },
+  async save(p) {
+    const { id, ...data } = p;
+    data.updated = Date.now();
+    if (this.mode === 'cloud') {
+      try { await this.col.doc(id).set(data); }
+      catch (e) { this.handleWriteError(e); return false; }
+    } else {
+      const i = this.plants.findIndex(x => x.id === id);
+      if (i >= 0) this.plants[i] = { ...data, id }; else this.plants.push({ ...data, id });
+      this.persistLocal(); render();
+    }
+    return true;
+  },
+  async remove(id) {
+    if (this.mode === 'cloud') {
+      try { await this.col.doc(id).delete(); }
+      catch (e) { this.handleWriteError(e); return false; }
+    } else {
+      this.plants = this.plants.filter(x => x.id !== id);
+      this.persistLocal(); render();
+    }
+    return true;
+  },
+  handleWriteError(e) {
+    if (e?.code === 'invalid_argument') { this.readOnly = true; toast('You can view this garden but not change it.'); }
+    else if (e?.code === 'quota_exceeded') toast('The garden is full. Remove a few plants to add more.');
+    else toast('Couldn’t save that change. Check your connection and try again.');
+    render();
+  },
+  get(id) { return this.plants.find(p => p.id === id); },
+};
+
+/* ---------------------------------------------------------------
+   App state & rendering
+---------------------------------------------------------------- */
+let tab = 'plants';
+let filter = 'all';
+let lookupId = null;
+let lookupQuery = '';
+
+function render() {
+  renderHeader();
+  const main = $('#main');
+  if (!Store.loaded) {
+    main.innerHTML = `<div class="banner">Loading your garden…</div>`;
+    return;
+  }
+  if (tab === 'plants') main.innerHTML = viewPlants();
+  else if (tab === 'water') main.innerHTML = viewWater();
+  else main.innerHTML = viewCompanions();
+  document.querySelectorAll('.tab').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === tab)));
+  $('#fab').hidden = Store.readOnly || tab === 'companions';
+  if (sheetRefresh) sheetRefresh();
+}
+
+function renderHeader() {
+  const n = Store.plants.length;
+  const due = Store.plants.filter(isDue).length;
+  const s = $('#summary');
+  if (!Store.loaded) s.textContent = 'Loading your garden…';
+  else if (!n) s.textContent = 'No plants yet';
+  else s.innerHTML = `${plural(n, 'plant')}${due ? ` · <b>${due} to water</b>` : ' · all watered'}`;
+  const badge = $('#waterBadge');
+  badge.hidden = !due; badge.textContent = due;
+  $('#sync').textContent = Store.mode === 'local' ? 'On this device' : (Store.slow ? 'Offline?' : '');
+}
+
+function plantRow(p) {
+  const w = waterInfo(p);
+  const l = lightOf(p);
+  const sub = [typeName(p) !== displayName(p) ? typeName(p) : null, l?.label].filter(Boolean).join(' · ');
+  return `<button class="row" type="button" data-open="${esc(p.id)}">
+    ${mono(displayName(p), catOf(p))}
+    <span class="row-main"><span class="row-title">${esc(displayName(p))}</span><span class="row-sub">${esc(sub || CATS[catOf(p)])}</span></span>
+    <span class="pill ${w.cls}">${w.cls ? ICON.drop : ''}${esc(w.label)}</span>
+  </button>`;
+}
+
+function viewPlants() {
+  const all = Store.plants;
+  let notes = '';
+  if (Store.mode === 'local') notes = `<div class="banner">Your plants are saved on this device, in this browser. On iPhone, add the app to your Home Screen so Safari keeps the data.</div>`;
+  if (Store.error) notes = `<div class="banner">Your garden can’t be reached right now. Reload the page to try again.</div>`;
+  if (!all.length) {
+    const quick = ['tomato','basil','pepper','lettuce','marigold','strawberry','pothos','snake','monstera'];
+    return notes + `<section class="empty">
+      <h2>Start your plant list</h2>
+      <p>Add what’s growing in the garden and around the house. Each plant gets a watering reminder, its light needs, and a list of good and bad neighbors.</p>
+      <p class="eyebrow" style="margin:4px 0 0">Quick add</p>
+      <div class="quick">${quick.map(id => `<button type="button" data-quick="${id}">+ ${esc(DB[id].name)}</button>`).join('')}</div>
+      <button class="btn primary" type="button" data-add>Add a plant</button>
+    </section>`;
+  }
+  const inGarden = all.filter(p => p.setting !== 'indoor');
+  const indoor = all.filter(p => p.setting === 'indoor');
+  const chips = [['all', 'All', all.length], ['garden', 'Garden', inGarden.length], ['indoor', 'Indoors', indoor.length]];
+  let shown = filter === 'garden' ? inGarden : filter === 'indoor' ? indoor : all;
+  const groups = new Map();
+  shown.slice().sort((a, b) => displayName(a).localeCompare(displayName(b))).forEach(p => {
+    const k = spotKey(p);
+    if (!groups.has(k)) groups.set(k, { label: spotLabel(p), indoor: p.setting === 'indoor', items: [] });
+    groups.get(k).items.push(p);
+  });
+  const ordered = [...groups.values()].sort((a, b) => (a.indoor - b.indoor) || a.label.localeCompare(b.label));
+  return notes + `<div class="chips" role="group" aria-label="Filter plants">${chips.map(([k, label, n]) =>
+      `<button class="chip" type="button" data-filter="${k}" aria-pressed="${filter === k}">${label}<span class="n">${n}</span></button>`).join('')}</div>
+    ${ordered.length ? ordered.map(g => `<section class="group">
+      <div class="group-head"><p class="eyebrow" style="margin:0">${esc(g.label)}</p><span class="small muted">${plural(g.items.length, 'plant')}</span></div>
+      <div class="list">${g.items.map(plantRow).join('')}</div>
+    </section>`).join('') : `<p class="muted">Nothing here yet.</p>`}`;
+}
+
+function viewWater() {
+  const all = Store.plants;
+  if (!all.length) return `<section class="empty"><h2>Nothing to water yet</h2><p>Add a plant and its watering schedule shows up here, soonest first.</p><button class="btn primary" type="button" data-add>Add a plant</button></section>`;
+  const sorted = all.slice().sort((a, b) => waterInfo(a).left - waterInfo(b).left);
+  const due = sorted.filter(isDue), later = sorted.filter(p => !isDue(p));
+  const row = p => {
+    const w = waterInfo(p);
+    const last = p.lastWatered ? `last ${fmtDate(p.lastWatered)}, every ${w.every}d` : `every ${w.every}d`;
+    return `<div class="row">
+      <button type="button" data-open="${esc(p.id)}" style="all:unset;display:flex;gap:12px;align-items:center;flex:1;min-width:0;cursor:pointer">
+        ${mono(displayName(p), catOf(p))}
+        <span class="row-main"><span class="row-title">${esc(displayName(p))}</span><span class="row-sub">${esc(spotLabel(p))} · ${esc(last)}</span></span>
+      </button>
+      ${isDue(p) && !Store.readOnly
+        ? `<button class="mini" type="button" data-water="${esc(p.id)}" aria-label="Mark ${esc(displayName(p))} watered">${ICON.drop}Watered</button>`
+        : `<span class="pill ${w.cls}">${esc(w.label)}</span>`}
+    </div>`;
+  };
+  return `${due.length ? `<section class="group">
+      <div class="group-head"><p class="eyebrow" style="margin:0">Needs water</p>${due.length > 1 && !Store.readOnly ? `<button class="btn ghost" type="button" data-water-all style="min-height:0;padding:0">Water all ${due.length}</button>` : ''}</div>
+      <div class="list">${due.map(row).join('')}</div></section>`
+    : `<div class="card"><h3>All caught up</h3><p class="muted small">Nothing needs water today. Next up: ${esc(displayName(later[0]))}, ${esc(waterInfo(later[0]).label.toLowerCase())}.</p></div>`}
+    ${later.length ? `<section class="group"><div class="group-head"><p class="eyebrow" style="margin:0">Coming up</p></div><div class="list">${later.map(row).join('')}</div></section>` : ''}
+    <p class="small muted">Schedules are starting points. Check the soil with a finger first: hot, windy weeks and small pots need more, rainy weeks and winter need less.</p>`;
+}
+
+function gardenAnalysis() {
+  const garden = Store.plants.filter(p => p.setting !== 'indoor' && DB[p.type]);
+  const owned = new Set(garden.map(p => p.type));
+  const score = new Map();
+  owned.forEach(t => REL[t].good.forEach((why, other) => {
+    if (owned.has(other) || DB[other].cat === 'house') return;
+    if (!score.has(other)) score.set(other, { id: other, helps: new Map(), clashes: [] });
+    score.get(other).helps.set(t, why);
+  }));
+  score.forEach(s => owned.forEach(t => { if (REL[s.id].bad.has(t)) s.clashes.push(t); }));
+  const suggestions = [...score.values()]
+    .sort((a, b) => (b.helps.size - b.clashes.length) - (a.helps.size - a.clashes.length) || DB[a.id].name.localeCompare(DB[b.id].name))
+    .slice(0, 8);
+  const conflicts = [], friends = [], seen = new Set();
+  for (let i = 0; i < garden.length; i++) for (let j = i + 1; j < garden.length; j++) {
+    const a = garden[i], b = garden[j];
+    if (a.type === b.type || spotKey(a) !== spotKey(b)) continue;
+    const key = [a.type, b.type].sort().join('|') + '@' + spotKey(a);
+    if (seen.has(key)) continue; seen.add(key);
+    if (REL[a.type].bad.has(b.type)) conflicts.push({ a, b, why: REL[a.type].bad.get(b.type) });
+    else if (REL[a.type].good.has(b.type)) friends.push({ a, b, why: REL[a.type].good.get(b.type) });
+  }
+  return { garden, owned, suggestions, conflicts, friends };
+}
+
+function viewCompanions() {
+  const { garden, suggestions, conflicts, friends } = gardenAnalysis();
+  const ownedAll = new Set(Store.plants.map(p => p.type));
+  let html = '';
+
+  if (conflicts.length) {
+    html += `<section class="section"><p class="eyebrow" style="margin:0">Keep these apart</p>${conflicts.map(c => `
+      <div class="card warn"><h3>${esc(displayName(c.a))} and ${esc(displayName(c.b))} share ${esc(spotLabel(c.a))}</h3><p class="small">${esc(c.why)}</p></div>`).join('')}</section>`;
+  }
+
+  if (garden.length) {
+    html += `<section class="section"><div><h2>Plant next to your garden</h2><p class="small muted" style="margin:4px 0 0">Ranked by how many of your garden plants each one helps.</p></div>
+      ${suggestions.length ? `<div class="rel">${suggestions.map(s => {
+        const helps = [...s.helps.keys()];
+        const why = s.helps.get(helps[0]);
+        return `<button class="rel-item" type="button" data-lookup="${s.id}">
+          ${mono(DB[s.id].name, DB[s.id].cat, 'sm')}
+          <span class="row-main"><span class="rel-name">${esc(DB[s.id].name)}<span class="tag">Helps ${helps.length}</span>${s.clashes.length ? `<span class="tag warn">Not near ${esc(s.clashes.map(t => DB[t].name.toLowerCase()).join(', '))}</span>` : ''}</span>
+          <span class="rel-why">For your ${esc(helps.map(t => DB[t].name.toLowerCase()).join(', '))}. ${esc(why)}</span></span>
+        </button>`;
+      }).join('')}</div>` : `<p class="muted small">Your garden already has the classic companions for what you grow.</p>`}</section>`;
+  } else {
+    html += `<div class="card"><h3>Add garden plants for suggestions</h3><p class="small muted">Once you add plants growing outside, this page suggests companions for them and flags pairs that should be kept apart. You can still look up any plant below.</p></div>`;
+  }
+
+  if (friends.length) {
+    html += `<section class="section"><p class="eyebrow" style="margin:0">Already working together</p><div class="rel">${friends.map(f => `
+      <div class="rel-item"><span class="row-main"><span class="pair">${esc(displayName(f.a))}<span class="amp">+</span>${esc(displayName(f.b))}<span class="tag">${esc(spotLabel(f.a))}</span></span><span class="rel-why">${esc(f.why)}</span></span></div>`).join('')}</div></section>`;
+  }
+
+  const q = lookupQuery.trim().toLowerCase();
+  const pool = Object.values(DB).filter(d => d.cat !== 'house' && (!q || d.name.toLowerCase().includes(q)))
+    .sort((a, b) => (ownedAll.has(b.id) - ownedAll.has(a.id)) || a.name.localeCompare(b.name));
+  html += `<section class="section"><div><h2>Look up a plant</h2><p class="small muted" style="margin:4px 0 0">See what grows well with it and what to keep away. Plants you have are outlined.</p></div>
+    <div class="search">${ICON.search}<input class="input" id="lookupSearch" type="search" placeholder="Search tomato, basil, beans…" value="${esc(lookupQuery)}" autocomplete="off"></div>
+    <div class="grid-chips" id="lookupChips">${pool.map(d => `<button type="button" data-lookup="${d.id}" class="${ownedAll.has(d.id) ? 'owned' : ''}">${esc(d.name)}</button>`).join('') || '<span class="muted small">No match. Try another name.</span>'}</div>
+  </section>`;
+  return html;
+}
+
+/* Companion blocks reused by detail + lookup */
+function companionBlocks(typeId, plant) {
+  const d = DB[typeId];
+  if (!d) return '';
+  const ownedAll = new Set(Store.plants.map(p => p.type));
+  if (d.cat === 'house') {
+    const similar = Object.values(DB).filter(o => o.cat === 'house' && o.id !== d.id &&
+      Math.abs(LIGHT[o.light].lvl - LIGHT[d.light].lvl) <= 1 && Math.abs(o.water - d.water) <= 3);
+    if (!similar.length) return '';
+    return `<section class="section"><div><h2>Groups well with</h2><p class="small muted" style="margin:4px 0 0">Houseplants with the same light and watering rhythm. Clustering them raises humidity and puts them on one schedule.</p></div>
+      <div class="rel">${similar.map(o => `<div class="rel-item">${mono(o.name, o.cat, 'sm')}<span class="row-main"><span class="rel-name">${esc(o.name)}${ownedAll.has(o.id) ? '<span class="tag">You have this</span>' : ''}</span><span class="rel-why">${esc(LIGHT[o.light].label)} · water about every ${o.water} days</span></span></div>`).join('')}</div></section>`;
+  }
+  const good = [...REL[typeId].good.entries()].sort((a, b) => (ownedAll.has(b[0]) - ownedAll.has(a[0])) || DB[a[0]].name.localeCompare(DB[b[0]].name));
+  const bad = [...REL[typeId].bad.entries()];
+  const sameSpot = other => plant && plant.setting !== 'indoor' && Store.plants.some(p => p.id !== plant.id && p.type === other && p.setting !== 'indoor' && spotKey(p) === spotKey(plant));
+  let html = '';
+  html += `<section class="section"><h2>Good neighbors</h2>${good.length ? `<div class="rel">${good.map(([o, why]) => `
+    <button class="rel-item" type="button" data-lookup="${o}">${mono(DB[o].name, DB[o].cat, 'sm')}<span class="row-main"><span class="rel-name">${esc(DB[o].name)}${sameSpot(o) ? '<span class="tag">Same spot</span>' : ownedAll.has(o) ? '<span class="tag">You have this</span>' : ''}</span><span class="rel-why">${esc(why)}</span></span></button>`).join('')}</div>`
+    : `<p class="small muted">No well-known companions. It’s fine next to most plants.</p>`}</section>`;
+  if (bad.length) html += `<section class="section"><h2>Keep apart</h2><div class="rel bad">${bad.map(([o, why]) => `
+    <button class="rel-item" type="button" data-lookup="${o}">${mono(DB[o].name, DB[o].cat, 'sm')}<span class="row-main"><span class="rel-name">${esc(DB[o].name)}${sameSpot(o) ? '<span class="tag warn">Same spot now</span>' : ''}</span><span class="rel-why">${esc(why)}</span></span></button>`).join('')}</div></section>`;
+  return html;
+}
+
+function careStats(lightKey, every, extra = {}) {
+  const l = LIGHT[lightKey];
+  const waterLvl = every <= 2 ? 5 : every <= 3 ? 4 : every <= 6 ? 3 : every <= 10 ? 2 : 1;
+  return `<div class="care">
+    ${l ? `<div class="stat"><span class="label">Light</span><span class="val">${esc(l.label)}</span>${meter(l.lvl, 'sun')}<span class="hint">${esc(l.hint)}</span></div>` : ''}
+    <div class="stat"><span class="label">Water</span><span class="val">Every ${plural(every, 'day')}</span>${meter(waterLvl, 'drop')}<span class="hint">${waterLvl >= 4 ? 'Thirsty: keep soil evenly moist' : waterLvl === 3 ? 'When the top inch is dry' : 'Let soil dry out between drinks'}</span></div>
+    ${extra.next ? `<div class="stat"><span class="label">Next water</span><span class="val">${esc(extra.next)}</span><span class="hint">${esc(extra.last)}</span></div>` : ''}
+    ${extra.planted ? `<div class="stat"><span class="label">Planted</span><span class="val">${esc(extra.planted)}</span><span class="hint">${esc(extra.age)}</span></div>` : ''}
+  </div>`;
+}
+
+/* ---------------------------------------------------------------
+   Sheets
+---------------------------------------------------------------- */
+let sheetRefresh = null;
+function openSheet(title, renderFn) {
+  $('#sheetTitle').textContent = title;
+  const body = $('#sheetBody');
+  sheetRefresh = () => { const st = body.scrollTop; body.innerHTML = renderFn(); body.scrollTop = st; };
+  body.innerHTML = renderFn();
+  body.scrollTop = 0;
+  $('#sheetRoot').hidden = false;
+  document.body.style.overflow = 'hidden';
+}
+function closeSheet() {
+  $('#sheetRoot').hidden = true;
+  sheetRefresh = null;
+  document.body.style.overflow = '';
+}
+
+function openDetail(id) {
+  let confirmDelete = false;
+  const renderFn = () => {
+    const p = Store.get(id);
+    if (!p) { setTimeout(closeSheet); return ''; }
+    const d = typeOf(p);
+    const w = waterInfo(p);
+    const next = w.never ? 'Today' : w.left < 0 ? `${-w.left}d overdue` : w.left === 0 ? 'Today' : w.left === 1 ? 'Tomorrow' : `In ${w.left} days`;
+    const age = p.planted ? daysBetween(p.planted, todayISO()) : null;
+    const history = (p.history || []).slice(-6).reverse();
+    return `<div class="hero">${mono(displayName(p), catOf(p), 'lg')}<div class="hero-text"><h2>${esc(displayName(p))}</h2><p class="muted small" style="margin:2px 0 0">${esc(typeName(p))} · ${esc(spotLabel(p))}${p.setting === 'indoor' ? '' : ' (outside)'}</p></div></div>
+      ${!Store.readOnly ? `<div class="btn-row">
+        ${w.left <= 0 ? `<button class="btn water" type="button" data-water="${esc(p.id)}">${ICON.drop}Mark watered</button>` : `<button class="btn" type="button" data-water="${esc(p.id)}">${ICON.drop}Watered today</button>`}
+        <button class="btn" type="button" data-edit="${esc(p.id)}">${ICON.edit}Edit</button>
+      </div>` : ''}
+      ${careStats(p.light || d?.light, w.every, {
+        next, last: p.lastWatered ? `Last: ${fmtDate(p.lastWatered)}` : 'No watering logged yet',
+        planted: p.planted ? fmtDate(p.planted) : '', age: age != null ? (age < 1 ? 'Today' : age < 60 ? `${plural(age, 'day')} ago` : `About ${Math.round(age / 30)} months ago`) : '',
+      })}
+      ${d?.note ? `<div class="note"><b>Care tip</b>${esc(d.note)}${p.setting === 'indoor' && d.cat !== 'house' ? ' In a pot it dries out faster, so check it more often.' : ''}</div>` : ''}
+      ${p.notes ? `<div class="note"><b>Your notes</b>${esc(p.notes).replace(/\n/g, '<br>')}</div>` : ''}
+      ${history.length ? `<div class="note"><b>Recent waterings</b>${history.map(fmtDate).join(' · ')}</div>` : ''}
+      ${d ? companionBlocks(d.id, p) : ''}
+      ${!Store.readOnly ? (confirmDelete
+        ? `<div class="card warn"><h3>Remove ${esc(displayName(p))}?</h3><p class="small">This deletes the plant and its watering history.</p><div class="btn-row"><button class="btn" type="button" data-cancel-del>Keep it</button><button class="btn danger" type="button" data-confirm-del="${esc(p.id)}">Remove</button></div></div>`
+        : `<button class="btn ghost" type="button" data-ask-del style="color:var(--warn);justify-self:start">Remove plant</button>`) : ''}`;
+  };
+  openSheet('Plant', renderFn);
+  $('#sheetBody').onclick = e => {
+    if (e.target.closest('[data-ask-del]')) { confirmDelete = true; sheetRefresh(); }
+    if (e.target.closest('[data-cancel-del]')) { confirmDelete = false; sheetRefresh(); }
+  };
+}
+
+function openLookup(typeId) {
+  const renderFn = () => {
+    const d = DB[typeId];
+    const mine = Store.plants.filter(p => p.type === typeId);
+    return `<div class="hero">${mono(d.name, d.cat, 'lg')}<div class="hero-text"><h2>${esc(d.name)}</h2><p class="muted small" style="margin:2px 0 0">${esc(CATS[d.cat])}${mine.length ? ` · you have ${mine.length}` : ''}</p></div></div>
+      ${careStats(d.light, d.water)}
+      <div class="note"><b>Care tip</b>${esc(d.note)}</div>
+      ${!Store.readOnly ? `<button class="btn primary block" type="button" data-quick="${d.id}">Add ${esc(d.name.toLowerCase())} to my plants</button>` : ''}
+      ${companionBlocks(typeId, null)}`;
+  };
+  openSheet('Companion guide', renderFn);
+  $('#sheetBody').onclick = null;
+}
+
+function openForm(id, presetType) {
+  const existing = id ? Store.get(id) : null;
+  const preset = DB[presetType];
+  const f = existing ? { ...existing } : {
+    id: newId(), type: preset ? preset.id : '', name: '', customType: '',
+    setting: preset?.cat === 'house' ? 'indoor' : 'garden', spot: '',
+    waterEvery: preset ? preset.water : 7, lastWatered: todayISO(), planted: '', notes: '', light: '', history: [],
+  };
+  let query = '';
+  let picking = !f.type && !f.customType;
+  const spots = () => {
+    const indoor = f.setting === 'indoor';
+    const used = Store.plants.filter(p => (p.setting === 'indoor') === indoor).map(p => (p.spot || '').trim()).filter(Boolean);
+    const seen = new Set();
+    return [...SPOT_PRESETS[indoor ? 'indoor' : 'garden'], ...used].filter(s => { const k = s.toLowerCase(); if (seen.has(k)) return false; seen.add(k); return true; });
+  };
+
+  const renderFn = () => {
+    const d = DB[f.type];
+    let typeBlock;
+    if (picking) {
+      const q = query.trim().toLowerCase();
+      const matches = Object.values(DB).filter(x => !q || x.name.toLowerCase().includes(q) || CATS[x.cat].toLowerCase().includes(q))
+        .sort((a, b) => a.name.localeCompare(b.name));
+      typeBlock = `<div class="field"><label for="f-q">What is it?</label>
+        <div class="search">${ICON.search}<input class="input" id="f-q" type="search" placeholder="Search 55 plants…" value="${esc(query)}" autocomplete="off"></div>
+        <div class="picker" id="f-picker">${matches.map(x => `<button class="pick" type="button" data-pick="${x.id}">${mono(x.name, x.cat, 'sm')}<span class="row-main"><span class="row-title">${esc(x.name)}</span><span class="row-sub">${esc(CATS[x.cat])} · ${esc(LIGHT[x.light].label)}</span></span></button>`).join('')}
+        ${q ? `<button class="pick" type="button" data-custom>${mono(query, 'other', 'sm')}<span class="row-main"><span class="row-title">Use “${esc(query.trim())}”</span><span class="row-sub">Custom plant, set care yourself</span></span></button>` : ''}</div></div>`;
+    } else {
+      const nm = d ? d.name : f.customType;
+      typeBlock = `<div class="field"><span class="label">Plant</span><div class="chosen">${mono(nm, d?.cat || 'other', 'sm')}<span class="row-main" style="flex:1"><span class="row-title">${esc(nm)}</span><span class="row-sub">${esc(d ? CATS[d.cat] : 'Custom plant')}</span></span><button class="btn ghost" type="button" data-repick>Change</button></div></div>`;
+    }
+    const spotList = spots();
+    return `<form id="plantForm" novalidate style="display:grid;gap:16px">
+      ${typeBlock}
+      ${picking ? '' : `
+      <div class="field"><label for="f-name">Nickname <span class="muted">(optional)</span></label><input class="input" id="f-name" value="${esc(f.name)}" placeholder="e.g. ${esc(d ? d.name : f.customType)} by the fence" autocomplete="off"></div>
+      <div class="field"><span class="label">Where</span><div class="seg" role="group"><button type="button" data-setting="garden" aria-pressed="${f.setting !== 'indoor'}">Garden / outside</button><button type="button" data-setting="indoor" aria-pressed="${f.setting === 'indoor'}">Indoors</button></div></div>
+      <div class="field"><label for="f-spot">Spot <span class="muted">(tap one or type a new one)</span></label><input class="input" id="f-spot" value="${esc(f.spot)}" placeholder="${f.setting === 'indoor' ? 'e.g. Bedroom' : 'e.g. Garden bed 3'}" autocomplete="off">
+        ${spotList.length ? `<div class="spots">${spotList.map(s => `<button type="button" data-spot="${esc(s)}" aria-pressed="${s.toLowerCase() === (f.spot || '').trim().toLowerCase()}">${esc(s)}</button>`).join('')}</div>` : ''}
+        ${f.setting !== 'indoor' ? `<span class="small muted">Plants with the same spot are checked against each other for companions and conflicts.</span>` : ''}</div>
+      ${!d ? `<div class="field"><label for="f-light">Light</label><select class="input" id="f-light">${Object.entries(LIGHT).map(([k, v]) => `<option value="${k}" ${f.light === k ? 'selected' : ''}>${v.label}: ${v.hint}</option>`).join('')}</select></div>` : ''}
+      <div class="field"><span class="label">Water every</span><div class="stepper"><button type="button" data-step="-1" aria-label="Fewer days">−</button><output id="f-every">${plural(f.waterEvery, 'day')}</output><button type="button" data-step="1" aria-label="More days">+</button></div>
+        ${d ? `<span class="small muted">Suggested for ${esc(d.name.toLowerCase())}: every ${plural(d.water, 'day')}${f.setting === 'indoor' && d.cat !== 'house' ? '. Pots dry faster, so consider less.' : '.'}</span>` : ''}</div>
+      <div class="two">
+        <div class="field"><label for="f-last">Last watered</label><input class="input" id="f-last" type="date" value="${esc(f.lastWatered || '')}" max="${todayISO()}"></div>
+        <div class="field"><label for="f-planted">Planted</label><input class="input" id="f-planted" type="date" value="${esc(f.planted || '')}" max="${todayISO()}"></div>
+      </div>
+      <div class="field"><label for="f-notes">Notes</label><textarea class="input" id="f-notes" placeholder="Variety, where you bought it, feeding schedule…">${esc(f.notes)}</textarea></div>
+      <button class="btn primary block" type="submit">${existing ? 'Save changes' : 'Add plant'}</button>`}
+    </form>`;
+  };
+
+  const syncInputs = () => {
+    const v = s => $(s) ? $(s).value : undefined;
+    if ($('#f-name')) f.name = v('#f-name');
+    if ($('#f-spot')) f.spot = v('#f-spot');
+    if ($('#f-light')) f.light = v('#f-light');
+    if ($('#f-last')) f.lastWatered = v('#f-last');
+    if ($('#f-planted')) f.planted = v('#f-planted');
+    if ($('#f-notes')) f.notes = v('#f-notes');
+  };
+
+  openSheet(existing ? 'Edit plant' : 'Add plant', renderFn);
+  const baseRefresh = sheetRefresh;
+  sheetRefresh = () => { syncInputs(); baseRefresh(); };
+  const body = $('#sheetBody');
+  body.onclick = e => {
+    const t = e.target.closest('button');
+    if (!t) return;
+    if (t.dataset.pick) {
+      const d = DB[t.dataset.pick];
+      f.type = d.id; f.customType = ''; f.light = '';
+      if (!existing) { f.waterEvery = d.water; f.setting = d.cat === 'house' ? 'indoor' : 'garden'; }
+      picking = false; sheetRefresh(); body.scrollTop = 0;
+    } else if ('custom' in t.dataset) {
+      f.type = ''; f.customType = query.trim(); f.light = f.light || 'bright'; picking = false; sheetRefresh();
+    } else if ('repick' in t.dataset) {
+      syncInputs(); picking = true; query = ''; sheetRefresh();
+      setTimeout(() => $('#f-q')?.focus(), 50);
+    } else if (t.dataset.setting) {
+      syncInputs();
+      const other = SPOT_PRESETS[t.dataset.setting === 'indoor' ? 'garden' : 'indoor'].map(s => s.toLowerCase());
+      if (other.includes((f.spot || '').trim().toLowerCase())) f.spot = '';
+      f.setting = t.dataset.setting; sheetRefresh();
+    } else if (t.dataset.spot) {
+      syncInputs(); f.spot = t.dataset.spot; sheetRefresh();
+    } else if (t.dataset.step) {
+      f.waterEvery = Math.min(60, Math.max(1, Number(f.waterEvery) + Number(t.dataset.step)));
+      $('#f-every').textContent = plural(f.waterEvery, 'day');
+    }
+  };
+  body.oninput = e => {
+    if (e.target.id === 'f-q') {
+      query = e.target.value;
+      const pos = e.target.selectionStart;
+      sheetRefresh();
+      const inp = $('#f-q'); inp.focus(); try { inp.setSelectionRange(pos, pos); } catch (_) {}
+    }
+  };
+  body.onsubmit = async e => {
+    e.preventDefault();
+    syncInputs();
+    if (!f.type && !f.customType) return;
+    const rec = {
+      id: f.id, type: f.type || '', customType: f.customType || '', name: (f.name || '').trim(),
+      setting: f.setting, spot: (f.spot || '').trim(), waterEvery: Number(f.waterEvery),
+      lastWatered: f.lastWatered || '', planted: f.planted || '', notes: (f.notes || '').trim(),
+      light: f.type ? '' : (f.light || 'bright'), history: f.history || [], created: f.created || Date.now(),
+    };
+    if (!existing && rec.lastWatered && !rec.history.includes(rec.lastWatered)) rec.history = [rec.lastWatered];
+    closeSheet();
+    const ok = await Store.save(rec);
+    if (ok) toast(existing ? 'Saved' : `Added ${displayName(rec)}`);
+    if (!existing) { tab = 'plants'; render(); }
+  };
+}
+
+/* ---------------------------------------------------------------
+   Actions
+---------------------------------------------------------------- */
+async function markWatered(id) {
+  const p = Store.get(id);
+  if (!p) return;
+  const before = { lastWatered: p.lastWatered || '', history: p.history || [] };
+  const t = todayISO();
+  const history = [...(p.history || []).filter(d => d !== t), t].slice(-12);
+  const ok = await Store.save({ ...p, lastWatered: t, history });
+  if (ok) toast(`Watered ${displayName(p)}`, 'Undo', () => {
+    const cur = Store.get(id); if (cur) Store.save({ ...cur, ...before });
+  });
+}
+async function waterAll() {
+  const due = Store.plants.filter(isDue);
+  for (const p of due) {
+    const t = todayISO();
+    await Store.save({ ...p, lastWatered: t, history: [...(p.history || []).filter(d => d !== t), t].slice(-12) });
+  }
+  toast(`Watered ${plural(due.length, 'plant')}`);
+}
+
+let toastTimer;
+function toast(msg, actionLabel, action) {
+  const el = $('#toast');
+  el.innerHTML = `<span>${esc(msg)}</span>${actionLabel ? `<button type="button">${esc(actionLabel)}</button>` : ''}`;
+  el.hidden = false;
+  if (actionLabel) el.querySelector('button').onclick = () => { el.hidden = true; action(); };
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.hidden = true; }, actionLabel ? 5000 : 2400);
+}
+
+document.addEventListener('click', e => {
+  const t = e.target.closest('button');
+  if (!t) return;
+  const ds = t.dataset;
+  if (ds.tab) { tab = ds.tab; render(); window.scrollTo(0, 0); return; }
+  if (ds.filter) { filter = ds.filter; render(); return; }
+  if (ds.open) { openDetail(ds.open); return; }
+  if (ds.water) { markWatered(ds.water); return; }
+  if ('waterAll' in ds) { waterAll(); return; }
+  if (ds.edit) { openForm(ds.edit); return; }
+  if (ds.confirmDel) { const p = Store.get(ds.confirmDel); closeSheet(); Store.remove(ds.confirmDel).then(ok => ok && toast(`Removed ${displayName(p)}`)); return; }
+  if (ds.quick) { openForm(null, ds.quick); return; }
+  if ('add' in ds) { openForm(null); return; }
+  if (ds.lookup) { openLookup(ds.lookup); return; }
+});
+$('#fab').addEventListener('click', () => openForm(null));
+$('#sheetClose').addEventListener('click', closeSheet);
+$('#scrim').addEventListener('click', closeSheet);
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#sheetRoot').hidden) closeSheet(); });
+document.addEventListener('input', e => {
+  if (e.target.id === 'lookupSearch') {
+    lookupQuery = e.target.value;
+    const pos = e.target.selectionStart;
+    render();
+    const inp = $('#lookupSearch'); inp.focus(); try { inp.setSelectionRange(pos, pos); } catch (_) {}
+  }
+});
+window.addEventListener('scroll', () => $('#top').classList.toggle('scrolled', window.scrollY > 4), { passive: true });
+
+// Re-render at midnight-ish changes when the page comes back into view
+document.addEventListener('visibilitychange', () => { if (!document.hidden) render(); });
+
+render();
+Store.init();
+</script>
+</body>
+</html>
