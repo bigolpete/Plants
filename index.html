@@ -185,6 +185,9 @@ h3 { font-size: 1rem; margin: 0; font-weight: 600; }
 .rel-name { font-weight: 600; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .rel-why { font-size: .88rem; color: var(--muted); }
 .rel.bad .rel-name { color: var(--warn); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: .8rem; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 10px; height: 10px; border-radius: 3px; background: var(--c); }
 .tag { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; padding: 2px 7px; border-radius: 6px; background: var(--leaf-soft); color: var(--leaf); }
 .tag.warn { background: var(--warn-soft); color: var(--warn); }
 
@@ -312,6 +315,8 @@ const SPOT_PRESETS = {
   garden: ['Garden bed 1', 'Garden bed 2'],
   indoor: ['Living room', 'Office', 'Sunroom', 'Kitchen'],
 };
+const CAT_ORDER = { herb: 0, flower: 1, veg: 2, fruit: 3, house: 4, other: 5 };
+const CAT_PLURAL = { herb: 'Herbs', flower: 'Flowers', veg: 'Vegetables', fruit: 'Fruit', house: 'Houseplants', other: 'Other' };
 const CATS = { veg: 'Vegetable', herb: 'Herb', flower: 'Flower', fruit: 'Fruit', house: 'Houseplant', other: 'Plant' };
 
 const PLANT_ROWS = [
@@ -989,11 +994,15 @@ function companionBlocks(typeId, plant) {
     return `<section class="section"><div><h2>Groups well with</h2><p class="small muted" style="margin:4px 0 0">Houseplants with the same light and watering rhythm. Clustering them raises humidity and puts them on one schedule.</p></div>
       <div class="rel">${similar.map(o => `<div class="rel-item">${mono(o.name, o.cat, 'sm')}<span class="row-main"><span class="rel-name">${esc(o.name)}${ownedAll.has(o.id) ? '<span class="tag">You have this</span>' : ''}</span><span class="rel-why">${esc(LIGHT[o.light].label)} · water about every ${o.water} days</span></span></div>`).join('')}</div></section>`;
   }
-  const good = [...REL[typeId].good.entries()].sort((a, b) => (ownedAll.has(b[0]) - ownedAll.has(a[0])) || DB[a[0]].name.localeCompare(DB[b[0]].name));
-  const bad = [...REL[typeId].bad.entries()];
   const sameSpot = other => plant && plant.setting !== 'indoor' && Store.plants.some(p => p.id !== plant.id && p.type === other && p.setting !== 'indoor' && spotKey(p) === spotKey(plant));
+  const byRank = (a, b) => (sameSpot(b[0]) - sameSpot(a[0])) || (ownedAll.has(b[0]) - ownedAll.has(a[0]))
+    || (CAT_ORDER[DB[a[0]].cat] - CAT_ORDER[DB[b[0]].cat]) || DB[a[0]].name.localeCompare(DB[b[0]].name);
+  const good = [...REL[typeId].good.entries()].sort(byRank);
+  const bad = [...REL[typeId].bad.entries()].sort(byRank);
+  const legendCats = Object.keys(CAT_ORDER).filter(c => [...good, ...bad].some(([o]) => DB[o].cat === c));
+  const legend = legendCats.length > 1 ? `<div class="legend" aria-label="Icon colors show plant type">${legendCats.map(c => `<span><i style="--c: var(--c-${c})"></i>${CAT_PLURAL[c]}</span>`).join('')}</div>` : '';
   let html = '';
-  html += `<section class="section"><h2>Good neighbors</h2>${good.length ? `<div class="rel">${good.map(([o, why]) => `
+  html += `<section class="section"><div><h2>Good neighbors</h2>${good.length ? `<p class="small muted" style="margin:4px 0 8px">Plants already near it are listed first. Icon color shows the plant type.</p>${legend}` : ''}</div>${good.length ? `<div class="rel">${good.map(([o, why]) => `
     <button class="rel-item" type="button" data-lookup="${o}">${mono(DB[o].name, DB[o].cat, 'sm')}<span class="row-main"><span class="rel-name">${esc(DB[o].name)}${sameSpot(o) ? '<span class="tag">Same spot</span>' : ownedAll.has(o) ? '<span class="tag">You have this</span>' : ''}</span><span class="rel-why">${esc(why)}</span></span></button>`).join('')}</div>`
     : `<p class="small muted">No well-known companions. It’s fine next to most plants.</p>`}</section>`;
   if (bad.length) html += `<section class="section"><h2>Keep apart</h2><div class="rel bad">${bad.map(([o, why]) => `
