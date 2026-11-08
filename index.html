@@ -189,7 +189,11 @@ h3 { font-size: 1rem; margin: 0; font-weight: 600; }
 .tag.warn { background: var(--warn-soft); color: var(--warn); }
 
 /* Form */
-.field { display: grid; gap: 6px; }
+.field { display: grid; gap: 6px; min-width: 0; }
+.sheet-body { overflow-x: hidden; }
+.sheet-body > *, #plantForm > * { min-width: 0; }
+input[type="date"].input { -webkit-appearance: none; appearance: none; display: block; min-width: 0; max-width: 100%; text-align: left; }
+input[type="date"].input::-webkit-date-and-time-value { text-align: left; }
 .field > label, .field > .label { font-size: .8rem; font-weight: 600; color: var(--muted); }
 .input { width: 100%; border: 1px solid var(--line); background: var(--surface); border-radius: 12px; padding: 12px 14px; font-size: 16px; min-height: 46px; }
 textarea.input { min-height: 80px; resize: vertical; }
@@ -1159,15 +1163,19 @@ function openForm(id, presetType) {
       syncInputs();
       const other = SPOT_PRESETS[t.dataset.setting === 'indoor' ? 'garden' : 'indoor'].map(s => s.toLowerCase());
       if (other.includes((f.spot || '').trim().toLowerCase())) f.spot = '';
-      f.setting = t.dataset.setting; sheetRefresh();
+      f.setting = t.dataset.setting; baseRefresh();
     } else if (t.dataset.spot) {
-      syncInputs(); f.spot = t.dataset.spot; sheetRefresh();
+      syncInputs(); f.spot = t.dataset.spot; baseRefresh();
     } else if (t.dataset.step) {
       f.waterEvery = Math.min(60, Math.max(1, Number(f.waterEvery) + Number(t.dataset.step)));
       $('#f-every').textContent = plural(f.waterEvery, 'day');
     }
   };
   body.oninput = e => {
+    if (e.target.id === 'f-spot') {
+      const v = e.target.value.trim().toLowerCase();
+      body.querySelectorAll('[data-spot]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.spot.toLowerCase() === v)));
+    }
     if (e.target.id === 'f-q') {
       query = e.target.value;
       const pos = e.target.selectionStart;
