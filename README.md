@@ -4,6 +4,7 @@ A phone-friendly web app for tracking garden and indoor plants.
 
 - **My plants:** inventory grouped by spot (Garden bed 1, Kitchen, Sunroom…)
 - **Watering:** schedules with one-tap "Watered" and overdue reminders
+- **Planner:** pick your state for estimated frost dates, add the crops you want, and get seed-starting dates, planting dates, harvest windows, bed space checks and a season calendar
 - **Companions:** suggestions for what to plant next to your garden, plus warnings for bad pairings in the same bed
 - Light needs and care tips for 55 common vegetables, herbs, flowers and houseplants
 

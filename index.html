@@ -134,7 +134,41 @@ h3 { font-size: 1rem; margin: 0; font-weight: 600; }
 
 /* Tab bar */
 .tabs { position: fixed; z-index: 22; left: 0; right: 0; bottom: 0; background: var(--surface); border-top: 1px solid var(--line); padding: 0 env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px); }
-.tabs .inner { max-width: 640px; margin: 0 auto; display: grid; grid-template-columns: repeat(3, 1fr); height: var(--tabbar-h); }
+.tabs .inner { max-width: 640px; margin: 0 auto; display: grid; grid-template-columns: repeat(4, 1fr); height: var(--tabbar-h); }
+
+/* Planner */
+.season-top { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
+.season-top > div { min-width: 0; }
+.season h2 { font-size: 1.45rem; }
+.frostline { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; font-size: .8rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.frostline .bar i { background: linear-gradient(90deg, var(--water), var(--leaf) 30%, var(--sun) 60%, var(--leaf) 85%, var(--water)); }
+.bar { height: 8px; border-radius: 4px; background: var(--surface-2); overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--leaf); border-radius: 4px; }
+.bar.over i { background: var(--warn); }
+.bed-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.plan-item { display: flex; gap: 12px; align-items: flex-start; width: 100%; padding: 12px 0 2px; border: 0; border-top: 1px solid var(--line); background: none; text-align: left; }
+.plan-item .row-main { flex: 1; min-width: 0; display: grid; gap: 3px; }
+.plan-item .sqft { flex: none; font-size: .8rem; color: var(--muted); font-variant-numeric: tabular-nums; padding-top: 2px; }
+.dates { display: flex; flex-wrap: wrap; gap: 2px 12px; font-size: .82rem; color: var(--muted); }
+.dates b { color: var(--ink); font-weight: 600; }
+.warnline { font-size: .82rem; color: var(--warn); }
+.tips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: .82rem; color: var(--muted); }
+.tip-btn { border: 1px dashed var(--line); background: none; border-radius: 999px; padding: 6px 11px; font-size: .85rem; color: var(--leaf); font-weight: 600; }
+.task { display: flex; gap: 12px; align-items: flex-start; padding: 11px 14px; border-top: 1px solid var(--line); }
+.task:first-child { border-top: 0; }
+.task .row-main { flex: 1; min-width: 0; }
+.task-text { font-weight: 600; display: block; }
+.task.done .task-text { text-decoration: line-through; color: var(--muted); }
+.tick { flex: none; width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--line); background: none; display: grid; place-items: center; color: transparent; padding: 0; }
+.tick svg { width: 14px; height: 14px; }
+.tick[aria-pressed="true"] { background: var(--leaf); border-color: var(--leaf); color: var(--leaf-ink); }
+.month { font-family: var(--f-display); font-size: 1.05rem; margin: 4px 2px 0; }
+.bedrow { display: grid; grid-template-columns: minmax(0, 1fr) 58px auto 58px 36px; gap: 6px; align-items: center; }
+.bedrow .input { padding: 10px 8px; min-height: 42px; }
+.bedrow .x { color: var(--muted); font-size: .85rem; }
+.preview { background: var(--surface); border-radius: 14px; padding: 14px; display: grid; gap: 8px; box-shadow: var(--shadow); }
+.preview .line { display: grid; grid-template-columns: 96px 1fr; gap: 8px; font-size: .9rem; }
+.preview .line span:first-child { color: var(--muted); font-size: .8rem; text-transform: uppercase; letter-spacing: .05em; font-weight: 600; padding-top: 2px; }
 .tab { border: 0; background: none; display: grid; place-items: center; align-content: center; gap: 2px; font-size: .72rem; font-weight: 600; color: var(--muted); position: relative; }
 .tab svg { width: 24px; height: 24px; }
 .tab[aria-selected="true"] { color: var(--leaf); }
@@ -268,7 +302,7 @@ textarea.input { min-height: 80px; resize: vertical; }
 
 <button class="fab" id="fab" type="button" aria-label="Add a plant">
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
-  Add plant
+  <span id="fabLabel">Add plant</span>
 </button>
 
 <nav class="tabs" aria-label="Sections">
@@ -281,6 +315,10 @@ textarea.input { min-height: 80px; resize: vertical; }
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/></svg>
       Watering
       <span class="badge" id="waterBadge" hidden></span>
+    </button>
+    <button class="tab" role="tab" data-tab="planner" aria-selected="false" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/><path d="M12 18v-4.5"/><path d="M12 14.5c0-1.6 1.2-2.6 3-2.6 0 1.6-1.2 2.6-3 2.6z"/></svg>
+      Planner
     </button>
     <button class="tab" role="tab" data-tab="companions" aria-selected="false" type="button">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="9" r="4"/><circle cx="16" cy="15" r="4"/><path d="M10.8 11.8l2.4 0.4"/></svg>
@@ -636,6 +674,7 @@ const Store = {
     const embedded = window.self !== window.top;
     for (let i = 0; i < 15 && embedded && !window.claude?.use; i++) await new Promise(r => setTimeout(r, 100));
     try { if (window.claude?.use) db = await window.claude.use('db'); } catch (e) { db = null; }
+    Plan.init(db);
     if (db) {
       this.mode = 'cloud';
       this.col = db.collection('plants');
@@ -712,7 +751,7 @@ function lastBackup() { try { return localStorage.getItem(BACKUP_KEY) || ''; } c
 function markBackup() { try { localStorage.setItem(BACKUP_KEY, todayISO()); } catch (e) {} }
 
 async function exportBackup() {
-  const payload = { app: 'lizzys-plants', version: 1, exported: new Date().toISOString(), plants: Store.plants };
+  const payload = { app: 'lizzys-plants', version: 2, exported: new Date().toISOString(), plants: Store.plants, plan: Plan.data };
   const name = `lizzys-plants-${todayISO()}.json`;
   const file = new File([JSON.stringify(payload, null, 2)], name, { type: 'application/json' });
   const touch = window.matchMedia?.('(pointer: coarse)').matches;
@@ -766,9 +805,11 @@ function parseBackup(text) {
   const raw = Array.isArray(data) ? data : Array.isArray(data?.plants) ? data.plants : null;
   if (!raw) return { error: 'That file isn’t a Lizzy’s Plants backup. Choose the .json file the app saved.' };
   const plants = raw.map(cleanPlant).filter(Boolean);
-  if (!plants.length) return { error: 'That backup has no plants in it.' };
+  const plan = data?.plan && typeof data.plan === 'object' ? normalizePlan(data.plan) : null;
+  const hasPlan = !!(plan && (plan.state || plan.items.length));
+  if (!plants.length && !hasPlan) return { error: 'That backup has no plants in it.' };
   const exported = typeof data?.exported === 'string' ? data.exported.slice(0, 10) : '';
-  return { plants, skipped: raw.length - plants.length, exported: date10(exported) };
+  return { plants, skipped: raw.length - plants.length, exported: date10(exported), plan: hasPlan ? plan : null };
 }
 const date10 = s => /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : '';
 
@@ -788,6 +829,7 @@ function openBackup() {
       restore = `<div class="card">
         <h3>Backup${pv.exported ? ` from ${esc(fmtDate(pv.exported))}` : ''}: ${plural(pv.plants.length, 'plant')}</h3>
         <p class="small muted">${fresh ? `${plural(fresh, 'new plant')}` : 'No new plants'}${same ? `, ${same} already here` : ''}.${pv.skipped ? ` ${pv.skipped} unreadable entr${pv.skipped === 1 ? 'y was' : 'ies were'} skipped.` : ''}</p>
+        ${pv.plan ? `<p class="small muted">Includes a ${pv.plan.year} season plan with ${plural(pv.plan.items.length, 'crop')}.${Plan.data.items.length ? ' “Add” keeps your current plan; “Replace all” uses the one in the backup.' : ''}</p>` : ''}
         ${s.confirmReplace
           ? `<div class="card warn" style="padding:12px"><h3>Replace all ${plural(n, 'plant')}?</h3><p class="small">Plants on this device that aren’t in the backup will be deleted.</p>
              <div class="btn-row"><button class="btn" type="button" data-bk="cancel-replace">Cancel</button><button class="btn danger" type="button" data-bk="replace">Replace</button></div></div>`
@@ -800,7 +842,7 @@ function openBackup() {
         <div class="stat"><span class="label">Plants</span><span class="val">${n}</span></div>
         <div class="stat"><span class="label">Last backup</span><span class="val">${lb ? esc(fmtDate(lb)) : 'Never'}</span></div>
       </div>
-      <button class="btn primary block" type="button" data-bk="export" ${n ? '' : 'disabled style="opacity:.5"'}>Save backup file</button>
+      <button class="btn primary block" type="button" data-bk="export" ${n || Plan.data.items.length ? '' : 'disabled style="opacity:.5"'}>Save backup file</button>
       <p class="small muted" style="margin:-6px 0 0">On iPhone, choose “Save to Files” and keep it in iCloud Drive.</p>
       <div><h2>Restore</h2><p class="small muted" style="margin:4px 0 0">Load a backup file saved from this app.</p></div>
       ${s.error ? `<div class="card warn"><p class="small">${esc(s.error)}</p></div>` : ''}
@@ -825,6 +867,7 @@ function openBackup() {
       }
       closeSheet();
       const ok = await Store.applyImport(list, act === 'replace');
+      if (ok && pv.plan && (act === 'replace' || (!Plan.data.items.length && !Plan.data.state))) Plan.save(pv.plan);
       if (ok) { toast(`Restored ${plural(pv.plants.length, 'plant')}`); tab = 'plants'; filter = 'all'; render(); }
     }
   };
@@ -859,9 +902,11 @@ function render() {
   }
   if (tab === 'plants') main.innerHTML = viewPlants();
   else if (tab === 'water') main.innerHTML = viewWater();
+  else if (tab === 'planner') main.innerHTML = viewPlanner();
   else main.innerHTML = viewCompanions();
   document.querySelectorAll('.tab').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === tab)));
-  $('#fab').hidden = Store.readOnly || tab === 'companions';
+  $('#fab').hidden = Store.readOnly || tab === 'companions' || (tab === 'planner' && !seasonInfo());
+  $('#fabLabel').textContent = tab === 'planner' ? 'Add to plan' : 'Add plant';
   if (sheetRefresh) sheetRefresh();
 }
 
@@ -1069,6 +1114,7 @@ let sheetRefresh = null;
 function openSheet(title, renderFn) {
   $('#sheetTitle').textContent = title;
   const body = $('#sheetBody');
+  body.onclick = body.oninput = body.onchange = body.onsubmit = null;
   sheetRefresh = () => { const st = body.scrollTop; body.innerHTML = renderFn(); body.scrollTop = st; };
   body.innerHTML = renderFn();
   body.scrollTop = 0;
@@ -1254,6 +1300,516 @@ function openForm(id, presetType) {
 /* ---------------------------------------------------------------
    Actions
 ---------------------------------------------------------------- */
+/* ===============================================================
+   Season planner
+   =============================================================== */
+
+/* Typical average last spring / first fall frost (MM-DD) for each state's main
+   population areas. Towns vary a lot, so the season sheet lets you override them. */
+const STATES = {
+  AL: ['Alabama', '03-20', '11-10'], AK: ['Alaska', '05-20', '09-10'], AZ: ['Arizona', '02-20', '11-30'],
+  AR: ['Arkansas', '04-01', '11-01'], CA: ['California', '03-01', '11-30'], CO: ['Colorado', '05-10', '10-01'],
+  CT: ['Connecticut', '04-25', '10-10'], DE: ['Delaware', '04-15', '10-25'], DC: ['District of Columbia', '04-05', '11-05'],
+  FL: ['Florida', '02-15', '12-10'], GA: ['Georgia', '03-25', '11-05'], HI: ['Hawaii', '01-15', '12-31'],
+  ID: ['Idaho', '05-05', '10-05'], IL: ['Illinois', '04-20', '10-15'], IN: ['Indiana', '04-20', '10-15'],
+  IA: ['Iowa', '04-25', '10-05'], KS: ['Kansas', '04-15', '10-20'], KY: ['Kentucky', '04-10', '10-25'],
+  LA: ['Louisiana', '03-01', '11-25'], ME: ['Maine', '05-10', '09-30'], MD: ['Maryland', '04-15', '10-25'],
+  MA: ['Massachusetts', '04-25', '10-15'], MI: ['Michigan', '05-05', '10-05'], MN: ['Minnesota', '05-10', '09-30'],
+  MS: ['Mississippi', '03-20', '11-05'], MO: ['Missouri', '04-10', '10-20'], MT: ['Montana', '05-15', '09-20'],
+  NE: ['Nebraska', '04-25', '10-05'], NV: ['Nevada', '03-01', '11-20'], NH: ['New Hampshire', '05-10', '10-01'],
+  NJ: ['New Jersey', '04-15', '10-25'], NM: ['New Mexico', '04-15', '10-25'], NY: ['New York', '04-20', '10-20'],
+  NC: ['North Carolina', '04-05', '10-30'], ND: ['North Dakota', '05-15', '09-20'], OH: ['Ohio', '04-25', '10-15'],
+  OK: ['Oklahoma', '04-01', '11-01'], OR: ['Oregon', '04-15', '10-30'], PA: ['Pennsylvania', '04-25', '10-15'],
+  RI: ['Rhode Island', '04-25', '10-20'], SC: ['South Carolina', '03-25', '11-10'], SD: ['South Dakota', '05-10', '09-25'],
+  TN: ['Tennessee', '04-05', '10-30'], TX: ['Texas', '03-10', '11-20'], UT: ['Utah', '04-30', '10-10'],
+  VT: ['Vermont', '05-15', '09-25'], VA: ['Virginia', '04-15', '10-25'], WA: ['Washington', '04-10', '11-01'],
+  WV: ['West Virginia', '04-25', '10-15'], WI: ['Wisconsin', '05-10', '10-01'], WY: ['Wyoming', '05-20', '09-20'],
+};
+
+/* Growing data for outdoor plants.
+   sq: square feet per plant (spacing = sqrt(sq) × 12 in.)
+   m: transplant (start indoors) | direct (sow in place) | either | buy (buy a starter) | perennial | fall (plant in autumn)
+   in: [earliest, latest] weeks BEFORE last frost to start seeds indoors
+   out: weeks relative to last frost to plant out or sow (negative = before)
+   dtm: days to first harvest from planting out or sowing; hw: weeks of harvest
+   tender: killed by frost; cool: cool-season crop (fall crop possible); succ: re-sow every N weeks */
+const GROW = {
+  tomato:     { sq: 4,      m: 'transplant', in: [8, 6],   out: 2,  dtm: 70, hw: 10, tender: 1 },
+  pepper:     { sq: 1.5,    m: 'transplant', in: [10, 8],  out: 2,  dtm: 70, hw: 10, tender: 1 },
+  eggplant:   { sq: 2.25,   m: 'transplant', in: [10, 8],  out: 2,  dtm: 70, hw: 8,  tender: 1 },
+  lettuce:    { sq: 0.25,   m: 'either',     in: [6, 4],   out: -3, dtm: 50, hw: 4,  cool: 1, succ: 2 },
+  spinach:    { sq: 0.11,   m: 'direct',                   out: -6, dtm: 45, hw: 3,  cool: 1, succ: 2 },
+  kale:       { sq: 1,      m: 'either',     in: [6, 4],   out: -4, dtm: 55, hw: 12, cool: 1 },
+  cabbage:    { sq: 2.25,   m: 'transplant', in: [8, 6],   out: -3, dtm: 70, hw: 3,  cool: 1 },
+  broccoli:   { sq: 2.25,   m: 'transplant', in: [8, 6],   out: -3, dtm: 65, hw: 4,  cool: 1 },
+  carrot:     { sq: 0.0625, m: 'direct',                   out: -3, dtm: 70, hw: 4,  cool: 1, succ: 3 },
+  radish:     { sq: 0.0625, m: 'direct',                   out: -4, dtm: 28, hw: 2,  cool: 1, succ: 2 },
+  beet:       { sq: 0.11,   m: 'direct',                   out: -3, dtm: 55, hw: 4,  cool: 1, succ: 3 },
+  onion:      { sq: 0.11,   m: 'transplant', in: [12, 10], out: -4, dtm: 100, hw: 2, note: 'Or skip seeds and plant onion sets on the planting date.' },
+  garlic:     { sq: 0.11,   m: 'fall',                               dtm: 0,  hw: 2,  note: 'Plant cloves in fall. Harvest next summer when the lower leaves turn brown.' },
+  potato:     { sq: 1,      m: 'direct',                   out: -2, dtm: 90, hw: 3,  note: 'Plant seed potatoes (small whole potatoes or chunks with 2 eyes), not true seed.' },
+  bean:       { sq: 0.11,   m: 'direct',                   out: 1,  dtm: 55, hw: 4,  tender: 1, succ: 3 },
+  pea:        { sq: 0.125,  m: 'direct',                   out: -6, dtm: 60, hw: 3,  cool: 1 },
+  corn:       { sq: 1,      m: 'direct',                   out: 1,  dtm: 80, hw: 2,  tender: 1, note: 'Plant in a block at least 4 rows deep so the wind can pollinate it.' },
+  squash:     { sq: 9,      m: 'either',     in: [4, 3],   out: 2,  dtm: 50, hw: 8,  tender: 1, note: 'Bush varieties fit this space. Winter squash and pumpkins sprawl much farther.' },
+  cucumber:   { sq: 2,      m: 'either',     in: [4, 3],   out: 2,  dtm: 55, hw: 6,  tender: 1, note: 'Space assumes a trellis. Vines left on the ground need about twice as much.' },
+  asparagus:  { sq: 2.25,   m: 'perennial',                out: -4, dtm: 0,  hw: 0,  harvestNote: 'Plant crowns. Light harvest in year 3, full harvests after that.' },
+  strawberry: { sq: 1,      m: 'perennial',                out: -4, dtm: 0,  hw: 0,  harvestNote: 'June-bearers: pinch flowers the first year, big crop next June. Everbearers fruit by late summer.' },
+  basil:      { sq: 0.25,   m: 'transplant', in: [6, 4],   out: 2,  dtm: 30, hw: 12, tender: 1 },
+  parsley:    { sq: 0.25,   m: 'transplant', in: [10, 8],  out: -2, dtm: 70, hw: 16 },
+  cilantro:   { sq: 0.11,   m: 'direct',                   out: -2, dtm: 45, hw: 3,  cool: 1, succ: 3 },
+  dill:       { sq: 1,      m: 'direct',                   out: 0,  dtm: 50, hw: 6 },
+  fennel:     { sq: 1,      m: 'direct',                   out: 0,  dtm: 80, hw: 4,  note: 'Keep it away from the vegetable beds.' },
+  mint:       { sq: 1,      m: 'buy',                      out: 0,  dtm: 30, hw: 16, note: 'Keep it in a pot sunk into the bed so it can’t spread.' },
+  rosemary:   { sq: 4,      m: 'buy',                      out: 1,  dtm: 30, hw: 16 },
+  thyme:      { sq: 1,      m: 'buy',                      out: 0,  dtm: 30, hw: 16 },
+  sage:       { sq: 2.25,   m: 'buy',                      out: 0,  dtm: 30, hw: 16 },
+  oregano:    { sq: 1,      m: 'buy',                      out: 0,  dtm: 30, hw: 16 },
+  chives:     { sq: 0.25,   m: 'either',     in: [8, 6],   out: -2, dtm: 75, hw: 16 },
+  chamomile:  { sq: 0.25,   m: 'either',     in: [6, 4],   out: -1, dtm: 60, hw: 8 },
+  lavender:   { sq: 4,      m: 'buy',                      out: 1,  dtm: 60, hw: 8 },
+  marigold:   { sq: 0.25,   m: 'either',     in: [6, 4],   out: 1,  dtm: 50, hw: 14, tender: 1 },
+  nasturtium: { sq: 1,      m: 'direct',                   out: 1,  dtm: 50, hw: 12, tender: 1 },
+  borage:     { sq: 2.25,   m: 'direct',                   out: 0,  dtm: 50, hw: 10 },
+  calendula:  { sq: 1,      m: 'direct',                   out: -2, dtm: 50, hw: 12 },
+  sunflower:  { sq: 1,      m: 'direct',                   out: 1,  dtm: 80, hw: 4,  tender: 1, note: 'Giant varieties need about 2 ft each way.' },
+  rose:       { sq: 9,      m: 'perennial',                out: -4, dtm: 0,  hw: 0,  harvestNote: 'Blooms from early summer. Repeat bloomers flower until frost.' },
+};
+
+const PLAN_KEY = 'lizzys-plants-plan-v1';
+const DEFAULT_BED = { l: 8, w: 4 };
+const clone = o => JSON.parse(JSON.stringify(o));
+
+function defaultPlan() {
+  const now = new Date();
+  return {
+    state: '', year: now.getMonth() >= 6 ? now.getFullYear() + 1 : now.getFullYear(), lf: '', ff: '',
+    beds: Object.fromEntries(SPOT_PRESETS.garden.map(b => [b, { ...DEFAULT_BED }])), items: [], done: {},
+  };
+}
+function normalizePlan(x) {
+  const d = defaultPlan();
+  if (!x || typeof x !== 'object') return d;
+  const mm = v => typeof v === 'string' && /^\d{2}-\d{2}$/.test(v) ? v : '';
+  const num = (v, lo, hi, def) => { const n = Number(v); return Number.isFinite(n) ? Math.min(hi, Math.max(lo, n)) : def; };
+  const beds = {};
+  if (x.beds && typeof x.beds === 'object') Object.entries(x.beds).slice(0, 30).forEach(([k, v]) => {
+    const name = String(k).slice(0, 60).trim();
+    if (name) beds[name] = { l: num(v?.l, 1, 200, 8), w: num(v?.w, 1, 200, 4) };
+  });
+  const items = Array.isArray(x.items) ? x.items.slice(0, 200).map(it => it && GROW[it.type] ? {
+    id: typeof it.id === 'string' && /^[A-Za-z0-9_-]{1,60}$/.test(it.id) ? it.id : newId(),
+    type: it.type,
+    qty: Math.round(num(it.qty, 1, 500, 1)),
+    bed: typeof it.bed === 'string' ? it.bed.slice(0, 60).trim() : '',
+    dtm: it.dtm ? Math.round(num(it.dtm, 1, 400, 0)) : 0,
+    notes: typeof it.notes === 'string' ? it.notes.slice(0, 500) : '',
+  } : null).filter(Boolean) : [];
+  items.forEach(it => { if (it.bed && !beds[it.bed]) beds[it.bed] = { ...DEFAULT_BED }; });
+  const done = {};
+  if (x.done && typeof x.done === 'object') Object.keys(x.done).slice(0, 2000).forEach(k => { if (x.done[k] === true && k.length < 100) done[k] = true; });
+  return {
+    state: STATES[x.state] ? x.state : '', year: Math.round(num(x.year, 2000, 2100, d.year)),
+    lf: mm(x.lf), ff: mm(x.ff), beds: Object.keys(beds).length ? beds : d.beds, items, done,
+  };
+}
+
+const Plan = {
+  data: defaultPlan(), doc: null, chain: Promise.resolve(),
+  init(db) {
+    if (db) {
+      this.doc = db.doc('planner/main');
+      this.doc.onSnapshot(s => { if (s.exists) { this.data = normalizePlan(s.data()); render(); } }, () => {});
+    } else {
+      try { const raw = localStorage.getItem(PLAN_KEY); if (raw) this.data = normalizePlan(JSON.parse(raw)); } catch (e) {}
+    }
+  },
+  save(next) {
+    this.data = normalizePlan(next);
+    render();
+    if (this.doc) {
+      const snap = clone(this.data);
+      this.chain = this.chain.then(() => this.doc.set(snap)).catch(e => Store.handleWriteError(e));
+    } else {
+      try { localStorage.setItem(PLAN_KEY, JSON.stringify(this.data)); } catch (e) {}
+    }
+  },
+};
+
+/* Dates */
+const mmddDate = (s, y) => { const [m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
+const addDays = (dt, n) => { const r = new Date(dt); r.setDate(r.getDate() + n); return r; };
+const isoOf = dt => `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}`;
+const today0 = () => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), d.getDate()); };
+const dayDiff = (a, b) => Math.round((b - a) / 864e5);
+function fmtD(dt, year) {
+  const opts = { month: 'short', day: 'numeric' };
+  if (year && dt.getFullYear() !== year) opts.year = 'numeric';
+  return dt.toLocaleDateString(undefined, opts);
+}
+
+function seasonInfo(plan = Plan.data) {
+  const st = STATES[plan.state];
+  if (!st) return null;
+  const year = plan.year;
+  const lf = mmddDate(plan.lf || st[1], year), ff = mmddDate(plan.ff || st[2], year);
+  return { year, lf, ff, days: dayDiff(lf, ff), name: st[0], code: plan.state, custom: !!(plan.lf || plan.ff), frostFree: plan.state === 'HI' };
+}
+
+const harvestVerb = type => DB[type].cat === 'flower' ? 'Blooms' : DB[type].cat === 'herb' ? 'Pick' : 'Harvest';
+const spacingIn = g => Math.max(2, Math.round(Math.sqrt(g.sq) * 12));
+const fmtSq = n => n >= 10 ? Math.round(n) : Math.round(n * 10) / 10;
+
+function schedule(item, s) {
+  const g = GROW[item.type];
+  if (!g) return null;
+  const dtm = Number(item.dtm) || g.dtm;
+  const r = { g, dtm, warnings: [] };
+  const t0 = today0();
+  if (g.m === 'fall') {
+    r.plantOut = addDays(s.ff, 10);
+    r.harvestText = 'Next summer, when the lower leaves brown';
+    return r;
+  }
+  r.plantOut = addDays(s.lf, g.out * 7);
+  if (g.in) { r.startFrom = addDays(s.lf, -g.in[0] * 7); r.startTo = addDays(s.lf, -g.in[1] * 7); }
+  if (g.m === 'perennial') { r.harvestText = g.harvestNote; return r; }
+  r.harvestStart = addDays(r.plantOut, dtm);
+  let end = addDays(r.harvestStart, Math.max(1, g.hw) * 7);
+  if (g.tender && end > s.ff && !s.frostFree) end = s.ff;
+  r.harvestEnd = end;
+  if (g.tender && !s.frostFree) {
+    if (r.harvestStart >= s.ff) r.warnings.push(`Needs about ${dtm} days after planting, but frost usually arrives ${fmtD(s.ff)}. Pick a faster variety.`);
+    else if (dayDiff(r.harvestStart, s.ff) < 21) r.warnings.push(`Only about ${dayDiff(r.harvestStart, s.ff)} days of harvest before frost. A faster variety gives you more.`);
+  }
+  if (r.startTo && r.startTo < t0 && r.plantOut > t0) {
+    r.warnings.push(g.m === 'either' ? 'Too late to start indoors. Sow it outside on the planting date instead.' : 'Too late to start seeds indoors. Buy starter plants instead.');
+  }
+  if (g.cool && !s.frostFree) {
+    const fall = addDays(s.ff, -(dtm + 14));
+    if (fall > addDays(r.harvestEnd, 14)) r.fallSow = fall;
+  }
+  return r;
+}
+
+function plantName(it) { return `${DB[it.type].name}${it.qty > 1 ? ` ×${it.qty}` : ''}`; }
+
+function planTasks(s, plan = Plan.data) {
+  const tasks = [];
+  plan.items.forEach(it => {
+    const r = schedule(it, s);
+    if (!r) return;
+    const g = r.g, name = plantName(it), where = it.bed ? ` in ${it.bed}` : '';
+    const add = (kind, date, text, sub) => tasks.push({ key: `${it.id}:${kind}`, kind, date, text, sub, itemId: it.id });
+    if (r.startFrom) add('start', r.startFrom,
+      g.m === 'either' ? `Start ${name} indoors (optional)` : `Start ${name} seeds indoors`,
+      `Any time until ${fmtD(r.startTo, s.year)}. Sow under lights or in a sunny window.`);
+    if (g.m === 'transplant') add('harden', addDays(r.plantOut, -10), `Harden off ${name} seedlings`, 'Put them outside a few hours a day, a little longer each day.');
+    const plantText = {
+      transplant: [`Plant ${name}${where}`, `Space about ${spacingIn(g)} in. apart.`],
+      direct: [`Sow ${name}${where}`, `Thin to about ${spacingIn(g)} in. apart.`],
+      either: [`Plant or sow ${name}${where}`, `Space about ${spacingIn(g)} in. apart.`],
+      buy: [`Plant ${name}${where}`, `Buy starter plants. Space about ${spacingIn(g)} in. apart.`],
+      perennial: [`Plant ${name}${where}`, `Plant crowns or bare-root plants about ${spacingIn(g)} in. apart.`],
+      fall: [`Plant ${name} cloves${where}`, 'Pointy end up, 2 in. deep. Mulch well for winter.'],
+    }[g.m];
+    let sub = plantText[1];
+    if (g.succ) sub += ` Sow more every ${g.succ} weeks for a steady supply.`;
+    add('plant', r.plantOut, plantText[0], sub);
+    if (r.harvestStart) {
+      const verb = harvestVerb(it.type);
+      add('harvest', r.harvestStart, verb === 'Blooms' ? `${DB[it.type].name} starts blooming` : `${verb} ${DB[it.type].name}`,
+        `About ${r.dtm} days after planting. Expect it through ${fmtD(r.harvestEnd, s.year)}.`);
+    }
+    if (r.fallSow) add('fall', r.fallSow, `Sow a fall crop of ${DB[it.type].name}`, 'Cool-season crops taste sweeter after light frost.');
+  });
+  return tasks.sort((a, b) => a.date - b.date);
+}
+
+function bedUsage(plan = Plan.data) {
+  const out = new Map();
+  Object.entries(plan.beds).forEach(([name, b]) => out.set(name, { name, area: b.l * b.w, l: b.l, w: b.w, used: 0, items: [] }));
+  plan.items.forEach(it => {
+    const key = it.bed || Object.keys(plan.beds)[0];
+    if (!out.has(key)) out.set(key, { name: key, area: 32, l: 8, w: 4, used: 0, items: [] });
+    const b = out.get(key);
+    b.used += GROW[it.type].sq * it.qty;
+    b.items.push(it);
+  });
+  return [...out.values()];
+}
+
+function taskRow(t, s, done, t0) {
+  const late = !done && t.date < t0;
+  return `<div class="task ${done ? 'done' : ''}">
+    <button class="tick" type="button" data-task="${esc(t.key)}" aria-pressed="${done}" aria-label="${done ? 'Mark not done' : 'Mark done'}: ${esc(t.text)}">${ICON.check}</button>
+    <div class="row-main"><span class="task-text">${esc(t.text)}</span><span class="row-sub" style="white-space:normal">${esc(fmtD(t.date, s.year))} · ${esc(t.sub)}</span></div>
+    ${late ? '<span class="pill late">Late</span>' : ''}
+  </div>`;
+}
+
+function viewPlanner() {
+  const plan = Plan.data, s = seasonInfo(plan);
+  if (!s) {
+    return `<section class="empty"><h2>Plan your outdoor season</h2>
+      <p>Pick your state to estimate frost dates. Then add what you want to grow. The planner works out when to start seeds indoors, when to plant out, how much bed space each crop needs, and when to expect a harvest.</p>
+      ${Store.readOnly ? '' : '<button class="btn primary" type="button" data-season>Set up my season</button>'}</section>`;
+  }
+  const t0 = today0();
+  const tasks = planTasks(s, plan);
+  const frostNote = s.frostFree ? 'Frost-free year round in most of the state' : `${s.days} frost-free days · ${s.custom ? 'your dates' : 'state average'}`;
+  let html = `<section class="card season">
+    <div class="season-top"><div><p class="eyebrow" style="margin:0 0 2px">${s.year} season · ${esc(s.name)}</p>
+      <h2>${esc(fmtD(s.lf))} to ${esc(fmtD(s.ff))}</h2>
+      <p class="small muted" style="margin:2px 0 0">Last spring frost to first fall frost. ${esc(frostNote)}.</p></div>
+      ${Store.readOnly ? '' : '<button class="btn ghost" type="button" data-season style="min-height:0;padding:4px 0">Change</button>'}</div>
+  </section>`;
+
+  if (!plan.items.length) {
+    const quick = ['tomato', 'pepper', 'lettuce', 'carrot', 'bean', 'cucumber', 'squash', 'basil', 'marigold'];
+    return html + `<section class="empty"><h2>What do you want to grow?</h2>
+      <p>Add crops and how many plants you want. You’ll get seed-starting dates, planting dates, harvest estimates, and a check on whether they fit your beds.</p>
+      <div class="quick">${quick.map(id => `<button type="button" data-plan-add="${id}">+ ${esc(DB[id].name)}</button>`).join('')}</div></section>`;
+  }
+
+  const upcoming = tasks.filter(t => !plan.done[t.key] && t.date >= addDays(t0, -30)).slice(0, 4);
+  html += `<section class="section"><p class="eyebrow" style="margin:0">Up next</p>
+    ${upcoming.length ? `<div class="list">${upcoming.map(t => taskRow(t, s, false, t0)).join('')}</div>` : '<p class="small muted">Nothing left to do this season. Nice work.</p>'}</section>`;
+
+  html += `<section class="section"><div><h2>Beds</h2><p class="small muted" style="margin:4px 0 0">Space each crop needs, and companions to consider.</p></div>`;
+  bedUsage(plan).forEach(b => {
+    const pct = Math.min(100, b.area ? (b.used / b.area) * 100 : 100);
+    const over = b.used > b.area;
+    const free = b.area - b.used;
+    const types = [...new Set(b.items.map(i => i.type))];
+    const clashes = [];
+    for (let i = 0; i < types.length; i++) for (let j = i + 1; j < types.length; j++) {
+      const why = REL[types[i]]?.bad.get(types[j]);
+      if (why) clashes.push(`${DB[types[i]].name} and ${DB[types[j]].name}: ${why}`);
+    }
+    const tips = [];
+    types.forEach(t => REL[t]?.good.forEach((why, o) => {
+      if (strength(t, o) === 3 && !types.includes(o) && GROW[o] && !types.some(x => REL[x]?.bad.has(o)) && !tips.some(x => x.o === o)) tips.push({ o, t });
+    }));
+    html += `<div class="card">
+      <div class="bed-head"><h3>${esc(b.name)}</h3><span class="small muted">${b.l} × ${b.w} ft</span></div>
+      <div class="bar ${over ? 'over' : ''}"><i style="width:${pct}%"></i></div>
+      <p class="small ${over ? '' : 'muted'}" style="${over ? 'color:var(--warn)' : ''}">${fmtSq(b.used)} of ${fmtSq(b.area)} sq ft planned. ${over ? `Over by ${fmtSq(-free)} sq ft. Move a crop, plant fewer, or grow vines up a trellis.` : b.items.length ? `${fmtSq(free)} sq ft free.` : 'Empty.'}</p>
+      ${b.items.map(it => {
+        const r = schedule(it, s), g = r.g;
+        const verb = harvestVerb(it.type);
+        const parts = [];
+        if (r.startFrom) parts.push(`Indoors <b>${esc(fmtD(r.startFrom, s.year))}</b>`);
+        parts.push(`${g.m === 'direct' ? 'Sow' : 'Plant'} <b>${esc(fmtD(r.plantOut, s.year))}</b>`);
+        if (r.harvestStart) parts.push(`${verb} <b>${esc(fmtD(r.harvestStart, s.year))}–${esc(fmtD(r.harvestEnd, s.year))}</b>`);
+        else if (r.harvestText) parts.push(esc(r.harvestText));
+        return `<button class="plan-item" type="button" data-plan-item="${esc(it.id)}">
+          ${mono(DB[it.type].name, DB[it.type].cat, 'sm')}
+          <span class="row-main"><span class="row-title">${esc(plantName(it))}</span>
+            <span class="dates">${parts.map(p => `<span>${p}</span>`).join('')}</span>
+            ${r.warnings.map(w => `<span class="warnline">${esc(w)}</span>`).join('')}</span>
+          <span class="sqft">${fmtSq(g.sq * it.qty)} sq ft</span>
+        </button>`;
+      }).join('')}
+      ${clashes.map(c => `<p class="warnline">Keep apart. ${esc(c)}</p>`).join('')}
+      ${tips.length && !Store.readOnly ? `<div class="tips"><span>Top pick companions:</span>${tips.slice(0, 3).map(x => `<button class="tip-btn" type="button" data-plan-add="${x.o}" data-bed="${esc(b.name)}">+ ${esc(DB[x.o].name)}</button>`).join('')}</div>` : ''}
+      ${!b.items.length && !Store.readOnly ? `<button class="tip-btn" type="button" data-plan-add="" data-bed="${esc(b.name)}" style="justify-self:start">+ Add a crop</button>` : ''}
+    </div>`;
+  });
+  html += `</section>`;
+
+  const months = new Map();
+  tasks.forEach(t => {
+    const k = t.date.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+    if (!months.has(k)) months.set(k, []);
+    months.get(k).push(t);
+  });
+  html += `<section class="section"><div><h2>Season calendar</h2><p class="small muted" style="margin:4px 0 0">Every step, in order. Tick them off as you go.</p></div>
+    ${[...months.entries()].map(([m, ts]) => `<p class="month">${esc(m)}</p><div class="list">${ts.map(t => taskRow(t, s, !!plan.done[t.key], t0)).join('')}</div>`).join('')}
+    <p class="small muted">Dates are estimates from average frost dates. Watch your local forecast before planting tender crops, and check seed packets for days to harvest.</p></section>`;
+  return html;
+}
+
+function toggleTask(key) {
+  if (Store.readOnly) return;
+  const p = clone(Plan.data);
+  if (p.done[key]) delete p.done[key]; else p.done[key] = true;
+  Plan.save(p);
+}
+
+/* Season setup sheet */
+function openSeason() {
+  const d = clone(Plan.data);
+  const thisYear = new Date().getFullYear();
+  let newBedName = '';
+  const renderFn = () => {
+    const st = STATES[d.state];
+    const used = new Set(d.items.map(i => i.bed));
+    const lfVal = st ? isoOf(mmddDate(d.lf || st[1], d.year)) : '';
+    const ffVal = st ? isoOf(mmddDate(d.ff || st[2], d.year)) : '';
+    return `<div class="field"><label for="s-state">State</label>
+        <select class="input" id="s-state"><option value="">Choose your state</option>${Object.entries(STATES).sort((a, b) => a[1][0].localeCompare(b[1][0])).map(([k, v]) => `<option value="${k}" ${d.state === k ? 'selected' : ''}>${esc(v[0])}</option>`).join('')}</select></div>
+      <div class="field"><span class="label">Season</span><div class="seg" role="group">${[thisYear, thisYear + 1].map(y => `<button type="button" data-ss="year" data-y="${y}" aria-pressed="${d.year === y}">${y}</button>`).join('')}</div></div>
+      ${st ? `<div class="two">
+          <div class="field"><label for="s-lf">Last spring frost</label><input class="input" id="s-lf" type="date" value="${lfVal}"></div>
+          <div class="field"><label for="s-ff">First fall frost</label><input class="input" id="s-ff" type="date" value="${ffVal}"></div>
+        </div>
+        <p class="small muted" style="margin:-6px 0 0">Typical for ${esc(st[0])}: ${esc(fmtD(mmddDate(st[1], d.year)))} and ${esc(fmtD(mmddDate(st[2], d.year)))}. Your town can be weeks different, so search “frost dates” with your ZIP code and adjust.${d.lf || d.ff ? ` <button class="btn ghost" type="button" data-ss="reset" style="min-height:0;padding:0">Use state average</button>` : ''}</p>` : ''}
+      <div><h2>Beds</h2><p class="small muted" style="margin:4px 0 0">Length × width in feet. Used to check that your crops fit.</p></div>
+      <div style="display:grid;gap:8px">${Object.entries(d.beds).map(([name, b]) => `<div class="bedrow">
+          <span class="row-title">${esc(name)}</span>
+          <input class="input" type="number" inputmode="decimal" min="1" max="200" step="0.5" value="${b.l}" data-bed-l="${esc(name)}" aria-label="${esc(name)} length in feet">
+          <span class="x">×</span>
+          <input class="input" type="number" inputmode="decimal" min="1" max="200" step="0.5" value="${b.w}" data-bed-w="${esc(name)}" aria-label="${esc(name)} width in feet">
+          ${used.has(name) ? '<span></span>' : `<button class="close" type="button" data-ss="rmbed" data-name="${esc(name)}" aria-label="Remove ${esc(name)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>`}
+        </div>`).join('')}</div>
+      <div class="bedrow" style="grid-template-columns:minmax(0,1fr) auto"><input class="input" id="s-newbed" placeholder="New bed name, e.g. Garden bed 3" value="${esc(newBedName)}" autocomplete="off"><button class="btn" type="button" data-ss="addbed">Add bed</button></div>
+      <button class="btn primary block" type="button" data-ss="save" ${d.state ? '' : 'disabled style="opacity:.5"'}>Save season</button>`;
+  };
+  openSheet('Season setup', renderFn);
+  const body = $('#sheetBody');
+  body.onclick = e => {
+    const b = e.target.closest('[data-ss]');
+    if (!b) return;
+    const act = b.dataset.ss;
+    if (act === 'year') { d.year = Number(b.dataset.y); sheetRefresh(); }
+    else if (act === 'reset') { d.lf = ''; d.ff = ''; sheetRefresh(); }
+    else if (act === 'rmbed') { delete d.beds[b.dataset.name]; sheetRefresh(); }
+    else if (act === 'addbed') {
+      const name = ($('#s-newbed').value || '').trim().slice(0, 60);
+      if (!name) { $('#s-newbed').focus(); return; }
+      if (!Object.keys(d.beds).some(k => k.toLowerCase() === name.toLowerCase())) d.beds[name] = { ...DEFAULT_BED };
+      newBedName = ''; sheetRefresh();
+    } else if (act === 'save') {
+      if (!d.state) return;
+      if (!Object.keys(d.beds).length) d.beds = defaultPlan().beds;
+      closeSheet(); Plan.save(d); tab = 'planner'; render(); toast('Season saved');
+    }
+  };
+  body.onchange = e => {
+    const t = e.target;
+    if (t.id === 's-state') { d.state = t.value; d.lf = ''; d.ff = ''; sheetRefresh(); }
+    else if (t.id === 's-lf' && t.value) { d.lf = t.value.slice(5); }
+    else if (t.id === 's-ff' && t.value) { d.ff = t.value.slice(5); }
+  };
+  body.oninput = e => {
+    const t = e.target;
+    const n = Math.min(200, Math.max(1, Number(t.value) || 1));
+    if (t.dataset.bedL && d.beds[t.dataset.bedL]) d.beds[t.dataset.bedL].l = n;
+    if (t.dataset.bedW && d.beds[t.dataset.bedW]) d.beds[t.dataset.bedW].w = n;
+    if (t.id === 's-newbed') newBedName = t.value;
+  };
+}
+
+/* Add / edit a crop in the plan */
+function openPlanItem(id, presetType, presetBed) {
+  const s = seasonInfo();
+  if (!s) { openSeason(); return; }
+  const existing = id ? Plan.data.items.find(i => i.id === id) : null;
+  const bedNames = Object.keys(Plan.data.beds);
+  const it = existing ? clone(existing) : {
+    id: newId(), type: GROW[presetType] ? presetType : '', qty: 1,
+    bed: presetBed && Plan.data.beds[presetBed] ? presetBed : bedNames[0] || '', dtm: 0, notes: '',
+  };
+  let picking = !it.type, query = '', confirmDel = false;
+
+  const preview = () => {
+    if (!it.type) return '';
+    const r = schedule(it, s), g = r.g;
+    const usage = bedUsage({ ...Plan.data, items: Plan.data.items.filter(x => x.id !== it.id) }).find(b => b.name === it.bed);
+    const free = usage ? usage.area - usage.used : 0;
+    const need = g.sq * it.qty;
+    const fits = Math.floor(Math.max(0, free) / g.sq);
+    const lines = [];
+    lines.push(['Space', `${fmtSq(need)} sq ft total, about ${spacingIn(g)} in. between plants.`]);
+    if (usage) lines.push(['Fits', need <= free ? `Yes. ${esc(it.bed)} has room for up to ${fits} of these.` : `<span style="color:var(--warn)">Not quite. ${esc(it.bed)} only has room for about ${fits}.</span>`]);
+    if (r.startFrom) lines.push(['Start seeds', `${fmtD(r.startFrom, s.year)} to ${fmtD(r.startTo, s.year)}, indoors${g.m === 'either' ? ' (optional)' : ''}`]);
+    lines.push([g.m === 'direct' ? 'Sow outside' : 'Plant out', fmtD(r.plantOut, s.year) + (g.m === 'fall' ? ' (this fall)' : '')]);
+    if (r.harvestStart) lines.push([harvestVerb(it.type), `${fmtD(r.harvestStart, s.year)} to ${fmtD(r.harvestEnd, s.year)}`]);
+    else if (r.harvestText) lines.push(['Harvest', esc(r.harvestText)]);
+    if (r.fallSow) lines.push(['Fall crop', `Sow again around ${fmtD(r.fallSow, s.year)}`]);
+    return `<div class="preview">${lines.map(([k, v]) => `<div class="line"><span>${k}</span><span>${v}</span></div>`).join('')}
+      ${r.warnings.map(w => `<p class="warnline" style="margin:0">${esc(w)}</p>`).join('')}
+      ${g.note ? `<p class="small muted" style="margin:0">${esc(g.note)}</p>` : ''}</div>`;
+  };
+
+  const renderFn = () => {
+    if (picking) {
+      const q = query.trim().toLowerCase();
+      const list = Object.keys(GROW).map(k => DB[k]).filter(x => !q || x.name.toLowerCase().includes(q)).sort((a, b) => a.name.localeCompare(b.name));
+      return `<div class="field"><label for="pi-q">What do you want to grow?</label>
+        <div class="search">${ICON.search}<input class="input" id="pi-q" type="search" placeholder="Search crops, herbs, flowers…" value="${esc(query)}" autocomplete="off"></div>
+        <div class="picker" style="max-height:none">${list.map(x => {
+          const g = GROW[x.id];
+          const how = { transplant: 'Start indoors', direct: 'Sow outside', either: 'Indoors or outside', buy: 'Buy a starter plant', perennial: 'Perennial', fall: 'Plant in fall' }[g.m];
+          return `<button class="pick" type="button" data-pi="pick" data-type="${x.id}">${mono(x.name, x.cat, 'sm')}<span class="row-main"><span class="row-title">${esc(x.name)}</span><span class="row-sub">${how} · ${spacingIn(g)} in. apart${g.dtm ? ` · ${g.dtm} days` : ''}</span></span></button>`;
+        }).join('') || '<p class="small muted" style="padding:12px">No match. The planner covers outdoor crops, herbs and flowers.</p>'}</div></div>`;
+    }
+    const d = DB[it.type], g = GROW[it.type];
+    return `<div class="chosen">${mono(d.name, d.cat, 'sm')}<span class="row-main" style="flex:1"><span class="row-title">${esc(d.name)}</span><span class="row-sub">${esc(CATS[d.cat])}</span></span>${existing ? '' : '<button class="btn ghost" type="button" data-pi="repick">Change</button>'}</div>
+      <div class="field"><span class="label">How many plants</span><div class="stepper"><button type="button" data-pi="qty" data-n="-1" aria-label="Fewer">−</button><output id="pi-qty">${it.qty}</output><button type="button" data-pi="qty" data-n="1" aria-label="More">+</button></div></div>
+      <div class="field"><span class="label">Bed</span><div class="spots">${bedNames.map(b => `<button type="button" data-pi="bed" data-name="${esc(b)}" aria-pressed="${b === it.bed}">${esc(b)}</button>`).join('')}</div>
+        <span class="small muted">Add beds or change sizes in season setup.</span></div>
+      ${g.dtm ? `<div class="field"><label for="pi-dtm">Days to harvest <span class="muted">(from your seed packet)</span></label><input class="input" id="pi-dtm" type="number" inputmode="numeric" min="1" max="400" placeholder="${g.dtm} (typical)" value="${it.dtm || ''}"></div>` : ''}
+      <div class="field"><label for="pi-notes">Variety or notes</label><input class="input" id="pi-notes" value="${esc(it.notes)}" placeholder="e.g. Sungold, Early Girl" autocomplete="off"></div>
+      <div id="pi-preview">${preview()}</div>
+      <button class="btn primary block" type="button" data-pi="save">${existing ? 'Save changes' : 'Add to plan'}</button>
+      ${existing ? `<button class="btn block" type="button" data-pi="planted">I planted it: add to My plants</button>
+        ${confirmDel ? `<div class="card warn"><h3>Remove ${esc(d.name)} from the plan?</h3><div class="btn-row"><button class="btn" type="button" data-pi="nodel">Keep</button><button class="btn danger" type="button" data-pi="del">Remove</button></div></div>`
+          : '<button class="btn ghost" type="button" data-pi="askdel" style="color:var(--warn);justify-self:start">Remove from plan</button>'}` : ''}`;
+  };
+
+  openSheet(existing ? 'Edit crop' : 'Add to plan', renderFn);
+  const body = $('#sheetBody');
+  const updatePreview = () => { const el = $('#pi-preview'); if (el) el.innerHTML = preview(); };
+  body.onclick = async e => {
+    const b = e.target.closest('[data-pi]');
+    if (!b) return;
+    const act = b.dataset.pi;
+    if (act === 'pick') { it.type = b.dataset.type; it.dtm = 0; picking = false; sheetRefresh(); body.scrollTop = 0; }
+    else if (act === 'repick') { picking = true; query = ''; sheetRefresh(); }
+    else if (act === 'qty') { it.qty = Math.min(500, Math.max(1, it.qty + Number(b.dataset.n))); $('#pi-qty').textContent = it.qty; updatePreview(); }
+    else if (act === 'bed') { it.bed = b.dataset.name; body.querySelectorAll('[data-pi="bed"]').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.name === it.bed))); updatePreview(); }
+    else if (act === 'askdel') { confirmDel = true; sheetRefresh(); }
+    else if (act === 'nodel') { confirmDel = false; sheetRefresh(); }
+    else if (act === 'del') {
+      const p = clone(Plan.data);
+      p.items = p.items.filter(x => x.id !== it.id);
+      Object.keys(p.done).forEach(k => { if (k.startsWith(it.id + ':')) delete p.done[k]; });
+      closeSheet(); Plan.save(p); toast(`Removed ${DB[it.type].name} from the plan`);
+    } else if (act === 'save') {
+      const p = clone(Plan.data);
+      const i = p.items.findIndex(x => x.id === it.id);
+      if (i >= 0) p.items[i] = it; else p.items.push(it);
+      closeSheet(); Plan.save(p); toast(existing ? 'Saved' : `Added ${DB[it.type].name} to the plan`);
+    } else if (act === 'planted') {
+      const t = todayISO();
+      const ok = await Store.save({
+        id: newId(), type: it.type, customType: '', name: it.notes ? `${DB[it.type].name} (${it.notes.slice(0, 40)})` : '',
+        setting: 'garden', spot: it.bed, waterEvery: DB[it.type].water, lastWatered: t, planted: t,
+        notes: `${it.qty} planted from the season plan.`, light: '', history: [t], created: Date.now(),
+      });
+      if (ok) {
+        const p = clone(Plan.data);
+        p.done[`${it.id}:plant`] = true;
+        closeSheet(); Plan.save(p); toast(`Added ${DB[it.type].name} to My plants`);
+      }
+    }
+  };
+  body.oninput = e => {
+    const t = e.target;
+    if (t.id === 'pi-q') {
+      query = t.value;
+      const pos = t.selectionStart;
+      sheetRefresh();
+      const inp = $('#pi-q'); inp.focus(); try { inp.setSelectionRange(pos, pos); } catch (_) {}
+    } else if (t.id === 'pi-dtm') { it.dtm = Math.min(400, Math.max(0, Math.round(Number(t.value) || 0))); updatePreview(); }
+    else if (t.id === 'pi-notes') { it.notes = t.value.slice(0, 500); }
+  };
+  body.onchange = null;
+  if (picking) setTimeout(() => $('#pi-q')?.focus(), 250);
+}
+
 async function markWatered(id) {
   const p = Store.get(id);
   if (!p) return;
@@ -1289,6 +1845,10 @@ document.addEventListener('click', e => {
   if (!t) return;
   const ds = t.dataset;
   if (ds.tab) { tab = ds.tab; render(); window.scrollTo(0, 0); return; }
+  if (ds.task) { toggleTask(ds.task); return; }
+  if ('season' in ds) { openSeason(); return; }
+  if (ds.planItem) { openPlanItem(ds.planItem); return; }
+  if ('planAdd' in ds) { openPlanItem(null, ds.planAdd, ds.bed); return; }
   if (ds.filter) { filter = ds.filter; render(); return; }
   if (ds.open) { openDetail(ds.open); return; }
   if (ds.water) { markWatered(ds.water); return; }
@@ -1300,7 +1860,7 @@ document.addEventListener('click', e => {
   if ('backup' in ds) { openBackup(); return; }
   if (ds.lookup) { openLookup(ds.lookup); return; }
 });
-$('#fab').addEventListener('click', () => openForm(null));
+$('#fab').addEventListener('click', () => tab === 'planner' ? openPlanItem(null) : openForm(null));
 $('#backupBtn').addEventListener('click', openBackup);
 $('#sheetClose').addEventListener('click', closeSheet);
 $('#scrim').addEventListener('click', closeSheet);
