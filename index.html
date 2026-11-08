@@ -190,6 +190,14 @@ h3 { font-size: 1rem; margin: 0; font-weight: 600; }
 .legend i { width: 10px; height: 10px; border-radius: 3px; background: var(--c); }
 .tag { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; padding: 2px 7px; border-radius: 6px; background: var(--leaf-soft); color: var(--leaf); }
 .tag.warn { background: var(--warn-soft); color: var(--warn); }
+.tag.here { background: var(--water-soft); color: var(--water); }
+.tag.n { background: var(--surface-2); color: var(--muted); }
+.tag.r3 { background: var(--leaf); color: var(--leaf-ink); }
+.tag.r2 { background: var(--leaf-soft); color: var(--leaf); }
+.tag.r1 { background: transparent; color: var(--muted); box-shadow: inset 0 0 0 1px var(--line); }
+.tiers { display: grid; gap: 6px; font-size: .82rem; color: var(--muted); }
+.tiers > div { display: grid; grid-template-columns: 76px 1fr; align-items: center; gap: 8px; }
+.tiers .tag { justify-self: start; }
 
 /* Form */
 .field { display: grid; gap: 6px; min-width: 0; }
@@ -539,6 +547,33 @@ function link(list, kind) {
 link(GOOD, 'good');
 link(BAD, 'bad');
 
+/* How strong each good pairing is.
+   3 = Top pick: well-known, widely observed benefit (Three Sisters, trap crops, nematode control, pest predators).
+   2 = Good: a practical benefit (shade, space, nitrogen, pollinators, scent masking).
+   1 = Folk tip: a traditional pairing with little evidence behind it. */
+const pairKey = (a, b) => [a, b].sort().join('|');
+const STRONG = [
+  ['tomato','basil'], ['tomato','marigold'], ['tomato','nasturtium'], ['bean','corn'], ['bean','squash'], ['corn','squash'],
+  ['carrot','onion'], ['brassica','dill'], ['brassica','nasturtium'], ['squash','borage'], ['spinach','radish'],
+  ['cucumber','radish'], ['squash','nasturtium'], ['cucumber','dill'],
+];
+const WEAK = [
+  ['basil','oregano'], ['pea','mint'], ['tomato','mint'], ['eggplant','thyme'], ['bean','rosemary'], ['bean','eggplant'],
+  ['brassica','chamomile'], ['brassica','sage'], ['brassica','rosemary'], ['carrot','sage'], ['carrot','rosemary'],
+  ['garlic','strawberry'], ['basil','asparagus'], ['strawberry','thyme'], ['brassica','oregano'], ['potato','brassica'],
+];
+const STR = new Map();
+const tierSet = list => new Set(list.flatMap(([a, b]) => expand(a).flatMap(x => expand(b).map(y => pairKey(x, y)))));
+const strongSet = tierSet(STRONG), weakSet = tierSet(WEAK);
+GOOD.forEach(([a, b, why]) => expand(a).forEach(x => expand(b).forEach(y => {
+  const k = pairKey(x, y);
+  if (STR.has(k)) return;
+  STR.set(k, strongSet.has(k) ? 3 : (weakSet.has(k) || /said to/.test(why)) ? 1 : 2);
+})));
+const strength = (a, b) => STR.get(pairKey(a, b)) || 2;
+const TIER = { 3: 'Top pick', 2: 'Good', 1: 'Folk tip' };
+const tierTag = s => `<span class="tag r${s}">${TIER[s]}</span>`;
+
 /* ---------------------------------------------------------------
    Helpers
 ---------------------------------------------------------------- */
@@ -839,7 +874,7 @@ function renderHeader() {
   else s.innerHTML = `${plural(n, 'plant')}${due ? ` · <b>${due} to water</b>` : ' · all watered'}`;
   const badge = $('#waterBadge');
   badge.hidden = !due; badge.textContent = due;
-  $('#sync').textContent = Store.mode === 'local' ? 'On this device' : (Store.slow ? 'Offline?' : '');
+  $('#sync').textContent = Store.mode === 'cloud' && Store.slow ? 'Offline?' : '';
 }
 
 function plantRow(p) {
@@ -928,7 +963,11 @@ function gardenAnalysis() {
   }));
   score.forEach(s => owned.forEach(t => { if (REL[s.id].bad.has(t)) s.clashes.push(t); }));
   const suggestions = [...score.values()]
-    .sort((a, b) => (b.helps.size - b.clashes.length) - (a.helps.size - a.clashes.length) || DB[a.id].name.localeCompare(DB[b.id].name))
+    .map(s => {
+      const helps = [...s.helps.keys()].sort((x, y) => strength(s.id, y) - strength(s.id, x));
+      return { ...s, helpsSorted: helps, best: Math.max(...helps.map(t => strength(s.id, t))), score: helps.reduce((n, t) => n + strength(s.id, t), 0) - 2 * s.clashes.length };
+    })
+    .sort((a, b) => (b.score - a.score) || (b.best - a.best) || DB[a.id].name.localeCompare(DB[b.id].name))
     .slice(0, 8);
   const conflicts = [], friends = [], seen = new Set();
   for (let i = 0; i < garden.length; i++) for (let j = i + 1; j < garden.length; j++) {
@@ -953,13 +992,13 @@ function viewCompanions() {
   }
 
   if (garden.length) {
-    html += `<section class="section"><div><h2>Plant next to your garden</h2><p class="small muted" style="margin:4px 0 0">Ranked by how many of your garden plants each one helps.</p></div>
+    html += `<section class="section"><div><h2>Plant next to your garden</h2><p class="small muted" style="margin:4px 0 0">Ranked by how much each one helps the plants in your garden.</p></div>
       ${suggestions.length ? `<div class="rel">${suggestions.map(s => {
-        const helps = [...s.helps.keys()];
+        const helps = s.helpsSorted;
         const why = s.helps.get(helps[0]);
         return `<button class="rel-item" type="button" data-lookup="${s.id}">
           ${mono(DB[s.id].name, DB[s.id].cat, 'sm')}
-          <span class="row-main"><span class="rel-name">${esc(DB[s.id].name)}<span class="tag">Helps ${helps.length}</span>${s.clashes.length ? `<span class="tag warn">Not near ${esc(s.clashes.map(t => DB[t].name.toLowerCase()).join(', '))}</span>` : ''}</span>
+          <span class="row-main"><span class="rel-name">${esc(DB[s.id].name)}${tierTag(s.best)}<span class="tag n">Helps ${helps.length}</span>${s.clashes.length ? `<span class="tag warn">Not near ${esc(s.clashes.map(t => DB[t].name.toLowerCase()).join(', '))}</span>` : ''}</span>
           <span class="rel-why">For your ${esc(helps.map(t => DB[t].name.toLowerCase()).join(', '))}. ${esc(why)}</span></span>
         </button>`;
       }).join('')}</div>` : `<p class="muted small">Your garden already has the classic companions for what you grow.</p>`}</section>`;
@@ -992,18 +1031,20 @@ function companionBlocks(typeId, plant) {
       Math.abs(LIGHT[o.light].lvl - LIGHT[d.light].lvl) <= 1 && Math.abs(o.water - d.water) <= 3);
     if (!similar.length) return '';
     return `<section class="section"><div><h2>Groups well with</h2><p class="small muted" style="margin:4px 0 0">Houseplants with the same light and watering rhythm. Clustering them raises humidity and puts them on one schedule.</p></div>
-      <div class="rel">${similar.map(o => `<div class="rel-item">${mono(o.name, o.cat, 'sm')}<span class="row-main"><span class="rel-name">${esc(o.name)}${ownedAll.has(o.id) ? '<span class="tag">You have this</span>' : ''}</span><span class="rel-why">${esc(LIGHT[o.light].label)} · water about every ${o.water} days</span></span></div>`).join('')}</div></section>`;
+      <div class="rel">${similar.map(o => `<div class="rel-item">${mono(o.name, o.cat, 'sm')}<span class="row-main"><span class="rel-name">${esc(o.name)}${ownedAll.has(o.id) ? '<span class="tag here">You have this</span>' : ''}</span><span class="rel-why">${esc(LIGHT[o.light].label)} · water about every ${o.water} days</span></span></div>`).join('')}</div></section>`;
   }
   const sameSpot = other => plant && plant.setting !== 'indoor' && Store.plants.some(p => p.id !== plant.id && p.type === other && p.setting !== 'indoor' && spotKey(p) === spotKey(plant));
   const byRank = (a, b) => (sameSpot(b[0]) - sameSpot(a[0])) || (ownedAll.has(b[0]) - ownedAll.has(a[0]))
     || (CAT_ORDER[DB[a[0]].cat] - CAT_ORDER[DB[b[0]].cat]) || DB[a[0]].name.localeCompare(DB[b[0]].name);
-  const good = [...REL[typeId].good.entries()].sort(byRank);
+  const good = [...REL[typeId].good.entries()].sort((a, b) => (strength(typeId, b[0]) - strength(typeId, a[0])) || byRank(a, b));
   const bad = [...REL[typeId].bad.entries()].sort(byRank);
   const legendCats = Object.keys(CAT_ORDER).filter(c => [...good, ...bad].some(([o]) => DB[o].cat === c));
   const legend = legendCats.length > 1 ? `<div class="legend" aria-label="Icon colors show plant type">${legendCats.map(c => `<span><i style="--c: var(--c-${c})"></i>${CAT_PLURAL[c]}</span>`).join('')}</div>` : '';
   let html = '';
-  html += `<section class="section"><div><h2>Good neighbors</h2>${good.length ? `<p class="small muted" style="margin:4px 0 8px">Plants already near it are listed first. Icon color shows the plant type.</p>${legend}` : ''}</div>${good.length ? `<div class="rel">${good.map(([o, why]) => `
-    <button class="rel-item" type="button" data-lookup="${o}">${mono(DB[o].name, DB[o].cat, 'sm')}<span class="row-main"><span class="rel-name">${esc(DB[o].name)}${sameSpot(o) ? '<span class="tag">Same spot</span>' : ownedAll.has(o) ? '<span class="tag">You have this</span>' : ''}</span><span class="rel-why">${esc(why)}</span></span></button>`).join('')}</div>`
+  html += `<section class="section"><div><h2>Good neighbors</h2>${good.length ? `<p class="small muted" style="margin:4px 0 8px">Best companions first.</p>
+      <div class="tiers"><div>${tierTag(3)}<span>Strong, well-known benefit</span></div><div>${tierTag(2)}<span>A useful boost</span></div><div>${tierTag(1)}<span>Traditional pairing, little proof</span></div></div>
+      <p class="small muted" style="margin:10px 0 6px">Icon color shows the plant type.</p>${legend}` : ''}</div>${good.length ? `<div class="rel">${good.map(([o, why]) => `
+    <button class="rel-item" type="button" data-lookup="${o}">${mono(DB[o].name, DB[o].cat, 'sm')}<span class="row-main"><span class="rel-name">${esc(DB[o].name)}${tierTag(strength(typeId, o))}${sameSpot(o) ? '<span class="tag here">Same spot</span>' : ownedAll.has(o) ? '<span class="tag here">You have this</span>' : ''}</span><span class="rel-why">${esc(why)}</span></span></button>`).join('')}</div>`
     : `<p class="small muted">No well-known companions. It’s fine next to most plants.</p>`}</section>`;
   if (bad.length) html += `<section class="section"><h2>Keep apart</h2><div class="rel bad">${bad.map(([o, why]) => `
     <button class="rel-item" type="button" data-lookup="${o}">${mono(DB[o].name, DB[o].cat, 'sm')}<span class="row-main"><span class="rel-name">${esc(DB[o].name)}${sameSpot(o) ? '<span class="tag warn">Same spot now</span>' : ''}</span><span class="rel-why">${esc(why)}</span></span></button>`).join('')}</div></section>`;
