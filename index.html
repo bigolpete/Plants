@@ -67,6 +67,10 @@ button { cursor: pointer; }
 h1 { font-family: var(--f-display); font-weight: 400; font-size: 1.7rem; line-height: 1.1; margin: 0; letter-spacing: -0.01em; }
 .summary { margin: 4px 0 0; color: var(--muted); font-size: .9rem; }
 .summary b { color: var(--water); font-weight: 600; }
+.head-actions { display: flex; align-items: center; gap: 10px; flex: none; }
+.icon-btn { width: 40px; height: 40px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); display: grid; place-items: center; }
+.icon-btn svg { width: 20px; height: 20px; }
+.backup-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .sync { font-size: .72rem; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; white-space: nowrap; padding-bottom: 4px; }
 
 main { padding-block: 8px calc(var(--tabbar-h) + 96px + env(safe-area-inset-bottom, 0px)); display: grid; gap: 18px; }
@@ -235,8 +239,14 @@ textarea.input { min-height: 80px; resize: vertical; }
       <h1>Lizzy's Plants</h1>
       <p class="summary" id="summary">Loading your garden…</p>
     </div>
-    <span class="sync" id="sync"></span>
+    <div class="head-actions">
+      <span class="sync" id="sync"></span>
+      <button class="icon-btn" id="backupBtn" type="button" aria-label="Back up or restore plants">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v11"/><path d="M8 10l4 4 4-4"/><path d="M5 15v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3"/></svg>
+      </button>
+    </div>
   </div>
+  <input type="file" id="importFile" accept="application/json,.json" hidden>
 </header>
 
 <main id="main" class="wrap" aria-live="polite"></main>
@@ -536,7 +546,7 @@ const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
 const typeOf = p => DB[p.type] || null;
 const catOf = p => typeOf(p)?.cat || 'other';
 const lightOf = p => LIGHT[p.light || typeOf(p)?.light] || null;
-const displayName = p => p.name?.trim() || typeOf(p)?.name || 'Plant';
+const displayName = p => p.name?.trim() || typeOf(p)?.name || p.customType || 'Plant';
 const typeName = p => typeOf(p)?.name || p.customType || 'Custom plant';
 const spotKey = p => (p.spot || '').trim().toLowerCase() || (p.setting === 'indoor' ? 'indoors' : 'garden');
 const spotLabel = p => (p.spot || '').trim() || (p.setting === 'indoor' ? 'Indoors' : 'Garden');
@@ -634,7 +644,159 @@ const Store = {
     render();
   },
   get(id) { return this.plants.find(p => p.id === id); },
+  async applyImport(list, replace) {
+    if (this.mode === 'cloud') {
+      if (replace) {
+        for (const p of this.plants.slice()) if (!list.some(x => x.id === p.id)) { if (!await this.remove(p.id)) return false; }
+      }
+      for (const p of list) { if (!await this.save(p)) return false; }
+      return true;
+    }
+    const map = new Map(replace ? [] : this.plants.map(p => [p.id, p]));
+    list.forEach(p => map.set(p.id, { ...p, updated: Date.now() }));
+    this.plants = [...map.values()];
+    this.persistLocal(); render();
+    return true;
+  },
 };
+
+/* ---------------------------------------------------------------
+   Backup & restore
+---------------------------------------------------------------- */
+const BACKUP_KEY = 'lizzys-plants-last-backup';
+function lastBackup() { try { return localStorage.getItem(BACKUP_KEY) || ''; } catch (e) { return ''; } }
+function markBackup() { try { localStorage.setItem(BACKUP_KEY, todayISO()); } catch (e) {} }
+
+async function exportBackup() {
+  const payload = { app: 'lizzys-plants', version: 1, exported: new Date().toISOString(), plants: Store.plants };
+  const name = `lizzys-plants-${todayISO()}.json`;
+  const file = new File([JSON.stringify(payload, null, 2)], name, { type: 'application/json' });
+  const touch = window.matchMedia?.('(pointer: coarse)').matches;
+  if (touch && navigator.canShare?.({ files: [file] })) {
+    try {
+      await navigator.share({ files: [file], title: "Lizzy's Plants backup" });
+      markBackup(); toast('Backup saved'); render(); return;
+    } catch (e) {
+      if (e?.name === 'AbortError') return;
+    }
+  }
+  try {
+    const url = URL.createObjectURL(file);
+    const a = document.createElement('a');
+    a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    markBackup(); toast(`Downloaded ${name}`); render();
+  } catch (e) {
+    toast('This browser blocked the download.');
+  }
+}
+
+function cleanPlant(x) {
+  if (!x || typeof x !== 'object' || Array.isArray(x)) return null;
+  const str = (v, n) => typeof v === 'string' ? v.slice(0, n) : '';
+  const date = v => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : '';
+  const type = typeof x.type === 'string' && DB[x.type] ? x.type : '';
+  const customType = str(x.customType, 80).trim();
+  if (!type && !customType) return null;
+  return {
+    id: typeof x.id === 'string' && /^[A-Za-z0-9_-]{1,60}$/.test(x.id) ? x.id : newId(),
+    type, customType,
+    name: str(x.name, 80),
+    setting: x.setting === 'indoor' ? 'indoor' : 'garden',
+    spot: str(x.spot, 60),
+    waterEvery: Math.min(60, Math.max(1, Math.round(Number(x.waterEvery)) || 7)),
+    lastWatered: date(x.lastWatered),
+    planted: date(x.planted),
+    notes: str(x.notes, 2000),
+    light: typeof x.light === 'string' && LIGHT[x.light] ? x.light : '',
+    history: Array.isArray(x.history) ? x.history.map(date).filter(Boolean).slice(-12) : [],
+    created: Number(x.created) || Date.now(),
+    updated: Number(x.updated) || 0,
+  };
+}
+
+function parseBackup(text) {
+  let data;
+  try { data = JSON.parse(text); } catch (e) { return { error: 'That file isn’t a Lizzy’s Plants backup. Choose the .json file the app saved.' }; }
+  const raw = Array.isArray(data) ? data : Array.isArray(data?.plants) ? data.plants : null;
+  if (!raw) return { error: 'That file isn’t a Lizzy’s Plants backup. Choose the .json file the app saved.' };
+  const plants = raw.map(cleanPlant).filter(Boolean);
+  if (!plants.length) return { error: 'That backup has no plants in it.' };
+  const exported = typeof data?.exported === 'string' ? data.exported.slice(0, 10) : '';
+  return { plants, skipped: raw.length - plants.length, exported: date10(exported) };
+}
+const date10 = s => /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : '';
+
+let backupState = null; // { preview, error, confirmReplace }
+function openBackup() {
+  backupState = { preview: null, error: '', confirmReplace: false };
+  const renderFn = () => {
+    const s = backupState;
+    const lb = lastBackup();
+    const n = Store.plants.length;
+    let restore = '';
+    if (s.preview) {
+      const pv = s.preview;
+      const existing = new Map(Store.plants.map(p => [p.id, p]));
+      const fresh = pv.plants.filter(p => !existing.has(p.id)).length;
+      const same = pv.plants.length - fresh;
+      restore = `<div class="card">
+        <h3>Backup${pv.exported ? ` from ${esc(fmtDate(pv.exported))}` : ''}: ${plural(pv.plants.length, 'plant')}</h3>
+        <p class="small muted">${fresh ? `${plural(fresh, 'new plant')}` : 'No new plants'}${same ? `, ${same} already here` : ''}.${pv.skipped ? ` ${pv.skipped} unreadable entr${pv.skipped === 1 ? 'y was' : 'ies were'} skipped.` : ''}</p>
+        ${s.confirmReplace
+          ? `<div class="card warn" style="padding:12px"><h3>Replace all ${plural(n, 'plant')}?</h3><p class="small">Plants on this device that aren’t in the backup will be deleted.</p>
+             <div class="btn-row"><button class="btn" type="button" data-bk="cancel-replace">Cancel</button><button class="btn danger" type="button" data-bk="replace">Replace</button></div></div>`
+          : `<div class="btn-row"><button class="btn primary" type="button" data-bk="merge">Add to my plants</button>${n ? `<button class="btn" type="button" data-bk="ask-replace">Replace all</button>` : ''}</div>
+             <p class="small muted">“Add” keeps your current plants and updates any that are also in the backup.</p>`}
+      </div>`;
+    }
+    return `<div><h2>Backup</h2><p class="small muted" style="margin:4px 0 0">Plants are stored in this browser. Save a backup file to keep them safe or to move them to another phone or computer.</p></div>
+      <div class="backup-stats">
+        <div class="stat"><span class="label">Plants</span><span class="val">${n}</span></div>
+        <div class="stat"><span class="label">Last backup</span><span class="val">${lb ? esc(fmtDate(lb)) : 'Never'}</span></div>
+      </div>
+      <button class="btn primary block" type="button" data-bk="export" ${n ? '' : 'disabled style="opacity:.5"'}>Save backup file</button>
+      <p class="small muted" style="margin:-6px 0 0">On iPhone, choose “Save to Files” and keep it in iCloud Drive.</p>
+      <div><h2>Restore</h2><p class="small muted" style="margin:4px 0 0">Load a backup file saved from this app.</p></div>
+      ${s.error ? `<div class="card warn"><p class="small">${esc(s.error)}</p></div>` : ''}
+      ${restore}
+      ${s.preview ? '' : `<button class="btn block" type="button" data-bk="choose">Choose backup file</button>`}`;
+  };
+  openSheet('Backup & restore', renderFn);
+  $('#sheetBody').onclick = async e => {
+    const b = e.target.closest('[data-bk]');
+    if (!b) return;
+    const act = b.dataset.bk;
+    if (act === 'export') exportBackup();
+    else if (act === 'choose') { const inp = $('#importFile'); inp.value = ''; inp.click(); }
+    else if (act === 'ask-replace') { backupState.confirmReplace = true; sheetRefresh(); }
+    else if (act === 'cancel-replace') { backupState.confirmReplace = false; sheetRefresh(); }
+    else if (act === 'merge' || act === 'replace') {
+      const pv = backupState.preview;
+      let list = pv.plants;
+      if (act === 'merge') {
+        const existing = new Map(Store.plants.map(p => [p.id, p]));
+        list = list.filter(p => !existing.has(p.id) || (existing.get(p.id).updated || 0) <= p.updated);
+      }
+      closeSheet();
+      const ok = await Store.applyImport(list, act === 'replace');
+      if (ok) { toast(`Restored ${plural(pv.plants.length, 'plant')}`); tab = 'plants'; filter = 'all'; render(); }
+    }
+  };
+}
+$('#importFile').addEventListener('change', async e => {
+  const file = e.target.files?.[0];
+  if (!file || !backupState) return;
+  if (file.size > 5 * 1024 * 1024) { backupState.error = 'That file is too large to be a plant backup.'; backupState.preview = null; }
+  else {
+    const res = parseBackup(await file.text());
+    backupState.error = res.error || '';
+    backupState.preview = res.error ? null : res;
+    backupState.confirmReplace = false;
+  }
+  if (sheetRefresh) sheetRefresh();
+});
 
 /* ---------------------------------------------------------------
    App state & rendering
@@ -685,7 +847,10 @@ function plantRow(p) {
 function viewPlants() {
   const all = Store.plants;
   let notes = '';
-  if (Store.mode === 'local') notes = `<div class="banner">Your plants are saved on this device, in this browser. On iPhone, add the app to your Home Screen so Safari keeps the data.</div>`;
+  const lb = lastBackup();
+  if (Store.mode === 'local' && all.length >= 3 && (!lb || daysBetween(lb, todayISO()) > 30)) {
+    notes = `<div class="banner" style="display:flex;gap:10px;align-items:center;justify-content:space-between"><span>Your plants live only on this device. ${lb ? `Last backup ${fmtDate(lb)}.` : 'No backup yet.'}</span><button class="mini done" type="button" data-backup>Back up</button></div>`;
+  }
   if (Store.error) notes = `<div class="banner">Your garden can’t be reached right now. Reload the page to try again.</div>`;
   if (!all.length) {
     const quick = ['tomato','basil','pepper','lettuce','marigold','strawberry','pothos','snake','monstera'];
@@ -695,6 +860,7 @@ function viewPlants() {
       <p class="eyebrow" style="margin:4px 0 0">Quick add</p>
       <div class="quick">${quick.map(id => `<button type="button" data-quick="${id}">+ ${esc(DB[id].name)}</button>`).join('')}</div>
       <button class="btn primary" type="button" data-add>Add a plant</button>
+      <button class="btn ghost" type="button" data-backup style="justify-self:start">Restore from a backup file</button>
     </section>`;
   }
   const inGarden = all.filter(p => p.setting !== 'indoor');
@@ -1073,9 +1239,11 @@ document.addEventListener('click', e => {
   if (ds.confirmDel) { const p = Store.get(ds.confirmDel); closeSheet(); Store.remove(ds.confirmDel).then(ok => ok && toast(`Removed ${displayName(p)}`)); return; }
   if (ds.quick) { openForm(null, ds.quick); return; }
   if ('add' in ds) { openForm(null); return; }
+  if ('backup' in ds) { openBackup(); return; }
   if (ds.lookup) { openLookup(ds.lookup); return; }
 });
 $('#fab').addEventListener('click', () => openForm(null));
+$('#backupBtn').addEventListener('click', openBackup);
 $('#sheetClose').addEventListener('click', closeSheet);
 $('#scrim').addEventListener('click', closeSheet);
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#sheetRoot').hidden) closeSheet(); });
